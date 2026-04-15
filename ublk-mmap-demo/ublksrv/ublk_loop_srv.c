@@ -103,6 +103,21 @@ static int ublk_dev_setup(struct ublk_server *srv, const char *backend_path) {
         return -1;
     }
 
+    /* Set device parameters */
+    struct ublk_params params = {
+        .len = sizeof(struct ublk_params),
+        .types = UBLK_PARAM_TYPE_BASIC,
+        .basic = basic,
+    };
+
+    ret = ioctl(srv->ctrl_fd, UBLK_CMD_SET_PARAMS, &params);
+    if (ret < 0) {
+        perror("UBLK_CMD_SET_PARAMS");
+        close(srv->ctrl_fd);
+        close(srv->backend_fd);
+        return -1;
+    }
+
     printf("ublk device %d created: size=%lu bytes (%lu sectors)\n",
            srv->dev_id, srv->dev_size, basic.dev_sectors);
 
