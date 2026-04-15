@@ -62,7 +62,8 @@ static int ublk_dev_setup(struct ublk_server *srv, const char *backend_path) {
 
     struct ublk_param_basic basic = {
         .attrs = UBLK_ATTR_READ_ONLY,  /* Read-only for safety in demo */
-        .block_size = UBLK_BLOCK_SIZE,
+        .logical_bs_shift = 9,         /* 2^9 = 512 bytes */
+        .physical_bs_shift = 9,        /* same as logical for simplicity */
         .dev_sectors = srv->dev_size / UBLK_BLOCK_SIZE,
         .max_sectors = 256,
     };
