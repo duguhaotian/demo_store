@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/ublk_cmd.h>
@@ -224,4 +225,104 @@ static int handle_write_io(struct ublk_server *srv, struct ublk_queue *q,
                            int tag, unsigned int sector, unsigned int nr_sectors) {
     printf("WRITE: ignored (read-only mode)\n");
     return -EROFS;  /* Return read-only filesystem error */
+}
+
+/* Main IO handling loop - process ublk IO requests */
+static void io_loop(struct ublk_server *srv) {
+    struct ublk_queue *q = &srv->queues[0];  /* Single queue demo */
+    struct io_uring_cqe *cqe;
+    int ret;
+
+    printf("IO loop started, waiting for requests...\n");
+    printf("Device /dev/ublkb%d ready for mmap access\n", srv->dev_id);
+    printf("Press Ctrl+C to stop\n\n");
+
+    while (srv->running) {
+        /* Poll for ublk IO events */
+        ret = io_uring_wait_cqe(&q->ring, &cqe);
+        if (ret < 0) {
+            if (ret == -EINTR) continue;  /* Interrupted, check running */
+            perror("io_uring_wait_cqe");
+            break;
+        }
+
+        /* Process completion event */
+        if (cqe) {
+            printf("IO completion: tag=%d, res=%d\n",
+                   (int)cqe->user_data, cqe->res);
+            io_uring_cqe_seen(&q->ring, cqe);
+        }
+
+        /* Sleep briefly to avoid busy-wait in demo */
+        usleep(10000);  /* 10ms */
+    }
+}
+
+/* Signal handler */
+static void sig_handler(int sig) {
+    printf("\nReceived signal %d, stopping...\n", sig);
+    g_srv.running = 0;
+}
+
+/* Main entry point */
+int main(int argc, char **argv) {
+    const char *backend_path = "backend.data";
+    int ret;
+
+    if (argc > 1) {
+        backend_path = argv[1];
+    }
+
+    printf("=== ublk loop server ===\n");
+    printf("Backend: %s\n", backend_path);
+
+    /* Setup signal handlers */
+    signal(SIGINT, sig_handler);
+    signal(SIGTERM, sig_handler);
+
+    /* Initialize server */
+    memset(&g_srv, 0, sizeof(g_srv));
+    g_srv.dev_id = UBLK_DEV_ID;
+    g_srv.running = 1;
+
+    /* Setup ublk device */
+    ret = ublk_dev_setup(&g_srv, backend_path);
+    if (ret < 0) {
+        fprintf(stderr, "Failed to setup ublk device\n");
+        return 1;
+    }
+
+    /* Setup queue */
+    ret = ublk_queue_setup(&g_srv, &g_srv.queues[0], 0);
+    if (ret < 0) {
+        fprintf(stderr, "Failed to setup queue\n");
+        ublk_dev_stop(&g_srv);
+        close(g_srv.ctrl_fd);
+        close(g_srv.backend_fd);
+        return 1;
+    }
+
+    /* Start device (make visible) */
+    ret = ublk_dev_start(&g_srv);
+    if (ret < 0) {
+        fprintf(stderr, "Failed to start device\n");
+        ublk_queue_cleanup(&g_srv.queues[0]);
+        ublk_dev_stop(&g_srv);
+        close(g_srv.ctrl_fd);
+        close(g_srv.backend_fd);
+        return 1;
+    }
+
+    /* Run IO loop */
+    io_loop(&g_srv);
+
+    /* Cleanup */
+    printf("\nCleaning up...\n");
+    ublk_queue_cleanup(&g_srv.queues[0]);
+    ublk_dev_stop(&g_srv);
+    close(g_srv.ctrl_fd);
+    close(g_srv.backend_fd);
+
+    printf("Server stopped cleanly\n");
+    return 0;
 }
