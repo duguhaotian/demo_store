@@ -1,0 +1,9 @@
+# Build artifacts
+ublk_loop_srv
+test_mmap
+
+# Backend data file
+backend.data
+
+# PID file
+.ublksrv_pid
