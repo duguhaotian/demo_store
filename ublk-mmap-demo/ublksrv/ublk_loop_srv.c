@@ -227,6 +227,20 @@ static int handle_write_io(struct ublk_server *srv, struct ublk_queue *q,
     return -EROFS;  /* Return read-only filesystem error */
 }
 
+/* Demo: simulate an IO request to show the data path */
+static void simulate_test_io(struct ublk_server *srv, struct ublk_queue *q) {
+    /* Simulate reading sector 0 */
+    printf("\n=== Simulated IO Test ===\n");
+    int ret = handle_read_io(srv, q, 0, 0, 8);  /* tag=0, sector=0, 8 sectors = 4KB */
+    if (ret == 0) {
+        printf("Simulated read successful\n");
+        printf("Data preview: %.50s...\n", (char *)get_io_buf(q, 0));
+    } else {
+        printf("Simulated read failed: %d\n", ret);
+    }
+    printf("=== End Simulated IO Test ===\n\n");
+}
+
 /* Main IO handling loop - process ublk IO requests */
 static void io_loop(struct ublk_server *srv) {
     struct ublk_queue *q = &srv->queues[0];  /* Single queue demo */
@@ -236,6 +250,9 @@ static void io_loop(struct ublk_server *srv) {
     printf("IO loop started, waiting for requests...\n");
     printf("Device /dev/ublkb%d ready for mmap access\n", srv->dev_id);
     printf("Press Ctrl+C to stop\n\n");
+
+    /* Demo: simulate one IO to show the data path works */
+    simulate_test_io(srv, q);
 
     while (srv->running) {
         /* Poll for ublk IO events */
