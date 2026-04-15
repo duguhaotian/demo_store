@@ -152,3 +152,76 @@ static void ublk_dev_stop(struct ublk_server *srv) {
 
     printf("ublk device %d stopped and deleted\n", srv->dev_id);
 }
+
+/* Setup queue: mmap IO buffer region and init io_uring */
+static int ublk_queue_setup(struct ublk_server *srv, struct ublk_queue *q, int q_id) {
+    size_t io_buf_size;
+    int ret;
+
+    q->q_id = q_id;
+    q->depth = UBLK_QUEUE_DEPTH;
+
+    /* IO buffer: one page per tag (4KB max IO size) */
+    io_buf_size = q->depth * 4096;
+    q->io_buf_size = io_buf_size;
+
+    /* mmap anonymous memory for IO buffers */
+    q->io_buf = mmap(NULL, io_buf_size,
+                     PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (q->io_buf == MAP_FAILED) {
+        perror("mmap io_buf");
+        return -1;
+    }
+
+    /* Initialize io_uring for async IO */
+    ret = io_uring_queue_init(q->depth * 2, &q->ring, 0);
+    if (ret < 0) {
+        perror("io_uring_queue_init");
+        munmap(q->io_buf, io_buf_size);
+        return -1;
+    }
+
+    printf("queue %d setup: depth=%d, io_buf_size=%zu\n",
+           q_id, q->depth, io_buf_size);
+    return 0;
+}
+
+/* Cleanup queue */
+static void ublk_queue_cleanup(struct ublk_queue *q) {
+    io_uring_queue_exit(&q->ring);
+    munmap(q->io_buf, q->io_buf_size);
+}
+
+/* Handle read IO request from ublk */
+static int handle_read_io(struct ublk_server *srv, struct ublk_queue *q,
+                          int tag, unsigned int sector, unsigned int nr_sectors) {
+    void *buf = get_io_buf(q, tag);
+    off_t offset = sector * UBLK_BLOCK_SIZE;
+    size_t size = nr_sectors * UBLK_BLOCK_SIZE;
+    ssize_t ret;
+
+    printf("READ: tag=%d, sector=%u, nr_sectors=%u, offset=%ld, size=%zu\n",
+           tag, sector, nr_sectors, offset, size);
+
+    /* Read from backend sparse file */
+    ret = pread(srv->backend_fd, buf, size, offset);
+    if (ret < 0) {
+        perror("pread backend");
+        return -1;
+    }
+
+    /* Zero-fill if read past EOF or into sparse hole */
+    if (ret < size) {
+        memset(buf + ret, 0, size - ret);
+    }
+
+    return 0;
+}
+
+/* Handle write IO request (disabled - read-only demo) */
+static int handle_write_io(struct ublk_server *srv, struct ublk_queue *q,
+                           int tag, unsigned int sector, unsigned int nr_sectors) {
+    printf("WRITE: ignored (read-only mode)\n");
+    return -EROFS;  /* Return read-only filesystem error */
+}
