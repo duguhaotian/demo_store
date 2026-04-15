@@ -1,15 +1,55 @@
 ---
 name: ublk-mmap-demo-design
-description: Design for ublk mmap demo demonstrating page fault handling with userspace data fetching
+description: Design for ublk mmap demo demonstrating page fault handling with userspace data fetching via file-backed ublk device
 type: project
 ---
 
 # ublk mmap Demo 设计文档
 
-**日期：** 2026-04-14
-**目标：** 演示 ublk 设备通过 mmap 映射、缺页触发、用户态 server 处理数据获取的核心机制
+**日期：** 2026-04-15
+**目标：** 演示 ublk 以普通文件作为后端，测试程序 mmap ublk 上文件系统的文件，缺页触发 ublk IO 链路的完整流程
 
 ## 1. 总体架构
+
+### 核心流程
+
+```
+┌─────────────────┐
+│   后端文件 A     │  (普通文件，作为 ublk 虚拟磁盘存储)
+│  backend.data   │
+└─────────────────┘
+        ↑
+        │ ublksrv 读取数据
+        │
+┌─────────────────┐
+│   ublksrv       │  (用户态 ublk server)
+│                 │  - 创建 ublk 块设备
+│                 │  - 处理 IO 请求
+│                 │  - 从后端文件读取数据
+└─────────────────┘
+        ↑
+        │ ublk IO 请求
+        │
+┌─────────────────┐
+│  ublk 块设备     │  /dev/ublkb0
+│                 │  (用户态块设备)
+└─────────────────┘
+        ↑
+        │ 文件系统 IO
+        │
+┌─────────────────┐
+│   文件系统       │  (ext4/fat 等，挂载在 ublk 上)
+│                 │
+│   文件 A         │  /mnt/ublk/test.data
+└─────────────────┘
+        ↑
+        │ mmap 缺页触发
+        │
+┌─────────────────┐
+│   测试程序       │  mmap 文件 A，访问触发缺页
+│                 │
+└─────────────────┘
+```
 
 ### 目录结构
 
@@ -17,13 +57,13 @@ type: project
 ublk-mmap-demo/
 ├── README.md               # Demo 说明文档
 ├── Makefile                # 编译脚本
-├── kernel/                 # 内核模块
-│   ├── ublk_char_dev.c     # 字符设备驱动 + mmap + fault handler
-│   ├── ublk_char_dev.h     # 头文件
-│   └── Makefile            # 内核模块编译
-├── ublk-server/            # 用户态 ublk server
-│   ├── ublk_server.c       # ublk 设备创建和 IO 处理
+├── ublksrv/                # 用户态 ublk server
+│   ├── ublk_loop_srv.c     # ublk server（文件后端）
 │   └── Makefile
+├── scripts/                # 辅助脚本
+│   ├── setup.sh            # 创建后端文件、挂载文件系统
+│   ├── cleanup.sh          # 清理环境
+│   └── run_demo.sh         # 运行完整 demo
 └── test/                   # 测试程序
 │   ├── test_mmap.c         # mmap 测试程序
 │   └── Makefile
@@ -31,192 +71,231 @@ ublk-mmap-demo/
 
 ### 三大组件
 
-1. **内核模块 `ublk_char_dev`**
-   - 创建字符设备 `/dev/ublk_char_demo`
-   - 实现 mmap 操作
-   - 实现 fault handler + workqueue 数据获取
+1. **ublksrv（用户态 ublk server）**
+   - 创建 ublk 块设备 `/dev/ublkb0`
+   - 以普通文件 `backend.data` 作为后端存储
+   - 处理 IO 请求：读取请求 → 从后端文件读取对应数据 → 返回
 
-2. **用户态 ublk server**
-   - 通过 `/dev/ublk-control` 创建 ublk 块设备
-   - 处理来自内核模块的 IO 请求（读操作）
-   - 提供虚拟数据（固定 pattern）
+2. **文件系统层**
+   - 在 ublk 块设备上挂载文件系统（ext4）
+   - 创建测试文件 `/mnt/ublk/test.data`
+   - 预填充测试数据
 
 3. **测试程序**
-   - mmap 字符设备
-   - 直接访问地址触发缺页
+   - mmap 文件 `/mnt/ublk/test.data`
+   - 访问地址触发缺页
    - 打印获取的数据验证正确性
 
-## 2. 内核模块设计
+## 2. ublksrv 设计
 
-### 字符设备核心功能
-
-**初始化流程：**
-1. 注册字符设备（`cdev_add`），设备名 `ublk_char_demo`
-2. 创建设备类和设备节点 `/dev/ublk_char_demo`
-3. 注册 ublk 模块参数（设备号、队列深度等）
-
-**mmap 实现：**
-- `ublk_char_mmap()` 分配虚拟内存区域
-- 使用 `vm_operations_struct` 注册 fault handler
-- 不立即映射物理内存，等待缺页时动态分配
-
-**vm_operations_struct：**
-```c
-static const struct vm_operations_struct ublk_char_vm_ops = {
-    .open = ublk_char_vma_open,
-    .close = ublk_char_vma_close,
-    .fault = ublk_char_fault,  // 关键：缺页处理
-};
-```
-
-**fault handler `ublk_char_fault()`：**
-- 获取缺页的虚拟地址和偏移
-- 创建 workqueue 任务，传入缺页信息
-- 返回 `VM_FAULT_NOPAGE`（暂不填充，等待 workqueue 完成）
-- workqueue 完成后调用 `vm_insert_page` 填充页面
-
-**workqueue 处理 `ublk_fetch_work()`：**
-1. 根据 fault 偏移计算 ublk 块号和块内偏移
-2. 通过内核 io_uring 或直接向 ublk 发送读请求
-3. 等待 ublk server 返回数据
-4. 分配新页面，填充数据
-5. 映射页面到缺页地址
-6. 唤醒等待的进程
-
-## 3. 用户态 ublk Server 设计
-
-### ublk Server 核心功能
+### 核心功能
 
 **初始化流程：**
 1. 打开 `/dev/ublk-control`
-2. 通过 ioctl 配置 ublk 设备参数（设备 ID、块大小、容量）
-3. 通过 mmap 映射 ublk 的共享内存区域（用于 IO 数据传输）
-4. 启动 io_uring 循环处理 IO 请求
+2. 打开后端文件 `backend.data`（作为虚拟磁盘存储）
+3. 通过 ioctl 配置 ublk 设备参数
+4. mmap ublk 共享内存区域（用于 IO 数据传输）
+5. 启动 io_uring 循环处理 IO 请求
 
 **ublk 设备配置：**
 ```c
 struct ublk_params params = {
-    .dev_id = 0,              // 设备 ID
-    .max_sectors = 256,       // 最大扇区数
-    .block_size = 4096,       // 4KB 块大小
-    .nr_hw_queues = 1,        // 1 个硬件队列
-    .queue_depth = 32,        // 队列深度
-    .dev_size = 16 * 4096,    // 64KB 总容量
+    .dev_id = 0,
+    .block_size = 512,        // 扇区大小
+    .nr_hw_queues = 1,
+    .queue_depth = 32,
+    .dev_size = file_size,    // 后端文件大小
 };
 ```
 
-**io_uring IO 处理循环：**
-1. 等待 io_uring 完成事件（ublk IO 请求）
-2. 解析 IO 操作类型（读/写）和目标位置
-3. 对于读请求：生成虚拟数据（按块号填充 pattern）
-4. 将数据写入 ublk 共享内存区域
-5. 通过 io_uring 提交完成结果
-
-**数据生成策略：**
-- 每个 4KB 块填充固定 pattern：`"Block N: data..."`
-- 简单但能验证数据获取正确性
-
-## 4. 数据流设计
-
-### 完整数据流
-
-```
-测试程序 mmap 字符设备 → 访问地址触发缺页
-                          ↓
-                  字符设备 fault handler
-                          ↓
-                  workqueue 提交任务
-                          ↓
-                  向 ublk 发送读请求
-                          ↓
-                  ublk server 处理请求
-                          ↓
-                  数据写入共享内存
-                          ↓
-                  完成结果返回
-                          ↓
-                  页面填充完成
-                          ↓
-                  测试程序继续执行
-```
-
-### 测试程序流程
-
+**IO 处理循环：**
 ```c
-int main() {
-    // 1. 打开字符设备
-    fd = open("/dev/ublk_char_demo", O_RDWR);
-
-    // 2. mmap 映射
-    void *map = mmap(NULL, 64 * 1024,
-                     PROT_READ | PROT_WRITE,
-                     MAP_SHARED, fd, 0);
-
-    // 3. 触发缺页：访问不同块
-    printf("Block 0: %s\n", (char *)map + 0);
-    printf("Block 5: %s\n", (char *)map + 5*4096);
-
-    // 4. 验证数据
-    // 期望输出: "Block 0: AAAA..." "Block 5: EEEE..."
-
-    // 5. 清理
-    munmap(map, 64 * 1024);
-    close(fd);
+while (running) {
+    // 1. 等待 io_uring 完成事件
+    io_uring_wait_cqe(&ring, &cqe);
+    
+    // 2. 解析 IO 请求
+    struct ublk_io *io = (struct ublk_io *)cqe->user_data;
+    
+    // 3. 处理读请求
+    if (io->op == UBLK_IO_OP_READ) {
+        // 计算后端文件偏移
+        off_t offset = io->sector * 512;
+        
+        // 从后端文件读取数据
+        pread backend_fd, io->addr, io->nr_sectors * 512, offset);
+        
+        // 提交完成结果
+        ublk_complete_io(io);
+    }
+    
+    // 4. 处理写请求（可选）
+    if (io->op == UBLK_IO_OP_WRITE) {
+        pwrite backend_fd, io->addr, io->nr_sectors * 512, io->sector * 512);
+        ublk_complete_io(io);
+    }
 }
 ```
 
-## 5. 错误处理
+### 后端文件布局
 
-### 内核模块
+后端文件 `backend.data` 作为虚拟磁盘的原始存储：
+- 文件大小：例如 64MB
+- 内容：原始磁盘数据（包含文件系统结构）
+- ublksrv 按 sector 偏移直接读取/写入
 
-- 设备注册失败 → 清理并返回错误码
-- fault handler 内存分配失败 → 返回 `VM_FAULT_OOM`
-- ublk IO 请求超时 → 重试 3 次，失败后返回 `VM_FAULT_SIGBUS`
-- workqueue 调度失败 → 记录日志，返回错误
+## 3. 文件系统层设计
 
-### ublk server
+### 设置流程（setup.sh）
+
+```bash
+# 1. 创建后端文件（虚拟磁盘）
+dd if=/dev/zero of=backend.data bs=1M count=64
+
+# 2. 启动 ublksrv
+./ublksrv &
+
+# 3. 等待 ublk 设备创建
+sleep 1
+
+# 4. 在 ublk 设备上创建文件系统
+mkfs.ext4 /dev/ublkb0
+
+# 5. 挂载文件系统
+mkdir -p /mnt/ublk
+mount /dev/ublkb0 /mnt/ublk
+
+# 6. 创建测试文件并填充数据
+echo "Hello from ublk mmap demo - Block 0" > /mnt/ublk/test.data
+dd if=/dev/urandom of=/mnt/ublk/test.data bs=4K count=16 seek=1 conv=notrunc
+```
+
+### 测试文件布局
+
+`/mnt/ublk/test.data`：
+- 大小：64KB + 开头文字
+- 内容：测试数据，用于 mmap 验证
+
+## 4. 测试程序设计
+
+### 核心流程
+
+```c
+int main() {
+    const char *file_path = "/mnt/ublk/test.data";
+    size_t file_size = 64 * 1024;
+    
+    // 1. 打开文件
+    int fd = open(file_path, O_RDONLY);
+    
+    // 2. mmap 文件
+    void *map = mmap(NULL, file_size,
+                     PROT_READ,
+                     MAP_PRIVATE, fd, 0);
+    
+    // 3. 触发缺页：访问不同偏移
+    printf("Offset 0: %s\n", (char *)map);           // 第一个块
+    printf("Offset 4K: %.20s...\n", (char *)map + 4096);  // 第二个块
+    
+    // 4. 打印缺页触发信息（配合内核日志）
+    printf("Check dmesg for page fault handling logs\n");
+    
+    // 5. 清理
+    munmap(map, file_size);
+    close(fd);
+    
+    return 0;
+}
+```
+
+## 5. 完整数据流
+
+```
+测试程序 mmap /mnt/ublk/test.data
+            ↓
+        访问 map[offset] 触发缺页
+            ↓
+        文件系统 ext4 处理缺页
+            ↓
+        ext4 向 ublk 块设备发起读请求
+            ↓
+        ublk 框架将请求传递给 ublksrv
+            ↓
+        ublksrv 解析请求（sector, nr_sectors）
+            ↓
+        ublksrv 从 backend.data 读取对应数据
+            ↓
+        数据写入 ublk 共享内存
+            ↓
+        ublksrv 提交完成结果
+            ↓
+        ublk 框架返回数据给文件系统
+            ↓
+        文件系统填充页面
+            ↓
+        缺页解决，测试程序继续执行
+```
+
+### 缺页到 IO 的映射关系
+
+```
+文件偏移 0~4K    → 文件系统块 0    → ublk sector 0~7     → backend.data offset 0~4K
+文件偏移 4K~8K   → 文件系统块 1    → ublk sector 8~15    → backend.data offset 4K~8K
+...
+```
+
+（具体映射取决于文件系统布局和文件在磁盘上的位置）
+
+## 6. 错误处理
+
+### ublksrv
 
 - ublk-control 打开失败 → 检查权限和内核版本（ublk 需要 6.0+）
+- 后端文件打开失败 → 检查文件路径和权限
 - io_uring 初始化失败 → 使用 fallback poll 模式
-- IO 处理失败 → 记录错误，继续处理其他请求
+- IO 处理失败 → 记录错误，返回 IO 错误状态
 
 ### 测试程序
 
-- 字符设备不存在 → 提示加载内核模块
-- mmap 失败 → 检查设备权限
+- 文件不存在 → 提示运行 setup.sh
+- mmap 失败 → 检查文件系统和挂载状态
 - 数据验证失败 → 打印期望值与实际值对比
 
-## 6. 测试计划
+## 7. 测试计划
 
 ### 基础功能测试
 
-1. 加载内核模块 → 验证 `/dev/ublk_char_demo` 创建成功
-2. 启动 ublk server → 醯证 `/dev/ublkb0` 创建成功
-3. 运行测试程序 → 验证 mmap 和数据访问正常
-4. 检查日志输出 → 验证缺页触发和数据获取流程
+1. 运行 `setup.sh` → 验证后端文件、ublk 设备、文件系统创建成功
+2. 运行测试程序 → 验证 mmap 和数据访问正常
+3. 检查 `dmesg` → 验证缺页触发和 IO 处理流程
+4. 检查 ublksrv 日志 → 验证 IO 请求处理正确
 
 ### 边界测试
 
-- 访问超出设备容量的地址 → 应返回错误或截断
-- 连续访问多个块 → 验证缓存和重复缺页处理
-- 并发访问（多线程） → 验证并发安全性
+- 访问文件不同偏移 → 验证多个缺页处理
+- 大文件 mmap → 验证大量缺页处理
+- 并发 mmap（多进程） → 验证并发安全性
 
 ### 清理测试
 
-- 卸载内核模块 → 验证设备清理
-- 停止 ublk server → 验证 ublk 设备删除
+- 运行 `cleanup.sh` → 验证环境清理正确
+- 检查 ublk 设备删除 → 验证 ublksrv 正常退出
 
-## 7. 系统要求
+## 8. 系统要求
 
 - **Linux 内核：** 6.0+ （ublk 框架支持）
-- **权限：** root（创建 ublk 设备需要）
-- **依赖：** liburing（io_uring 库）或内核原生 io_uring 支持
+- **权限：** root（创建 ublk 设备、挂载文件系统需要）
+- **依赖：** liburing（io_uring 库）
 
-## 8. 实现要点
+## 9. 实现要点
 
-**Why:** 这个 demo 展示了用户态块设备 (ublk) 与内存映射 (mmap) 结合的完整流程，核心价值在于演示缺页处理时如何从用户态 server 动态获取数据。
+**Why:** 这个 demo 展示了 ublk 以文件为后端创建块设备，测试程序 mmap 文件触发缺页的完整 IO 链路。核心价值在于演示：
+- ublk 作为用户态块设备框架的工作机制
+- 文件系统缺页如何触发底层块设备 IO
+- ublksrv 如何处理 IO 并从后端存储获取数据
 
 **How to apply:** 实现时注意以下关键点：
-- fault handler 不能阻塞，必须使用 workqueue 等异步机制
-- ublk server 使用 io_uring 与内核通信，需要正确处理共享内存布局
-- 测试程序访问不同偏移验证缺页触发和数据获取的正确性
+- ublksrv 需正确解析 ublk IO 请求（sector 编号、扇区数）
+- 后端文件偏移计算：`offset = sector * 512`
+- 文件系统块到 ublk sector 的映射由文件系统内部处理
+- 测试程序 mmap 文件触发缺页，观察完整数据流
