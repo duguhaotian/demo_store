@@ -55,8 +55,7 @@ static int ublk_dev_setup(struct ublk_server *srv, const char *backend_path) {
         .dev_id = srv->dev_id,
         .nr_hw_queues = UBLK_NR_HW_QUEUES,
         .queue_depth = UBLK_QUEUE_DEPTH,
-        .block_size = UBLK_BLOCK_SIZE,
-        .dev_size = srv->dev_size,
+        .max_io_buf_bytes = 4096,    /* 4KB max IO buffer per request */
         .flags = 0,
     };
 
@@ -84,7 +83,6 @@ static int ublk_dev_setup(struct ublk_server *srv, const char *backend_path) {
         close(srv->backend_fd);
         return -1;
     }
-    dev_info.dev_size = srv->dev_size;
     basic.dev_sectors = srv->dev_size / UBLK_BLOCK_SIZE;
 
     /* Open ublk control device */
