@@ -12,6 +12,14 @@ MODULE_VERSION("1.0");
 
 struct snapshot_driver_state *g_driver_state;
 
+/* Control device for ioctl operations before any template exists */
+static struct miscdevice control_device = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = "snapshot_control",
+    .fops = &snapshot_fops,
+    .mode = 0600,
+};
+
 static int __init snapshot_init(void)
 {
     int ret;
@@ -32,7 +40,16 @@ static int __init snapshot_init(void)
         return ret;
     }
 
-    pr_info("snapshot_driver: initialized\n");
+    /* Register control device for initial ioctl operations */
+    ret = misc_register(&control_device);
+    if (ret) {
+        snapshot_pool_destroy(&g_driver_state->page_pool);
+        kfree(g_driver_state);
+        return ret;
+    }
+
+    pr_info("snapshot_driver: initialized, control device at /dev/%s\n",
+            control_device.name);
     return 0;
 }
 
@@ -45,9 +62,13 @@ static void __exit snapshot_exit(void)
                              &g_driver_state->template_list, list) {
         list_del(&template->list);
         misc_deregister(&template->mdev);
+        kfree(template->mdev.name);
         kfree(template);
     }
     spin_unlock(&g_driver_state->template_lock);
+
+    /* Deregister control device */
+    misc_deregister(&control_device);
 
     snapshot_pool_destroy(&g_driver_state->page_pool);
     kfree(g_driver_state);
