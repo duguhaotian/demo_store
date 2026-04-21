@@ -3,6 +3,8 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
+#include <linux/sysfs.h>
+#include <linux/kobject.h>
 #include "snapshot_types.h"
 
 MODULE_LICENSE("GPL");
@@ -11,6 +13,30 @@ MODULE_DESCRIPTION("Memory snapshot driver for VM sharing");
 MODULE_VERSION("1.0");
 
 struct snapshot_driver_state *g_driver_state;
+
+/* Sysfs attributes */
+static ssize_t stats_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    struct snapshot_template *template;
+    int count = 0;
+    uint64_t total_pages;
+
+    spin_lock(&g_driver_state->template_lock);
+    list_for_each_entry(template, &g_driver_state->template_list, list) {
+        count++;
+    }
+    spin_unlock(&g_driver_state->template_lock);
+
+    total_pages = g_driver_state->page_pool.total_pages;
+
+    return sprintf(buf, "templates: %d\nloaded_pages: %llu\nhash_modulus: %llu\n",
+                   count, total_pages, g_driver_state->hash_modulus);
+}
+
+static struct kobj_attribute stats_attr = __ATTR(stats, 0444, stats_show, NULL);
+
+/* Sysfs kobject */
+static struct kobject *snapshot_kobj;
 
 /* Control device for ioctl operations before any template exists */
 static struct miscdevice control_device = {
@@ -40,9 +66,27 @@ static int __init snapshot_init(void)
         return ret;
     }
 
+    /* Create sysfs directory and attributes */
+    snapshot_kobj = kobject_create_and_add("snapshot_driver", kernel_kobj);
+    if (!snapshot_kobj) {
+        snapshot_pool_destroy(&g_driver_state->page_pool);
+        kfree(g_driver_state);
+        return -ENOMEM;
+    }
+
+    ret = sysfs_create_file(snapshot_kobj, &stats_attr.attr);
+    if (ret) {
+        kobject_put(snapshot_kobj);
+        snapshot_pool_destroy(&g_driver_state->page_pool);
+        kfree(g_driver_state);
+        return ret;
+    }
+
     /* Register control device for initial ioctl operations */
     ret = misc_register(&control_device);
     if (ret) {
+        sysfs_remove_file(snapshot_kobj, &stats_attr.attr);
+        kobject_put(snapshot_kobj);
         snapshot_pool_destroy(&g_driver_state->page_pool);
         kfree(g_driver_state);
         return ret;
@@ -57,6 +101,13 @@ static void __exit snapshot_exit(void)
 {
     struct snapshot_template *template, *tmp;
 
+    /* Deregister control device */
+    misc_deregister(&control_device);
+
+    /* Remove sysfs */
+    sysfs_remove_file(snapshot_kobj, &stats_attr.attr);
+    kobject_put(snapshot_kobj);
+
     spin_lock(&g_driver_state->template_lock);
     list_for_each_entry_safe(template, tmp,
                              &g_driver_state->template_list, list) {
@@ -66,9 +117,6 @@ static void __exit snapshot_exit(void)
         kfree(template);
     }
     spin_unlock(&g_driver_state->template_lock);
-
-    /* Deregister control device */
-    misc_deregister(&control_device);
 
     snapshot_pool_destroy(&g_driver_state->page_pool);
     kfree(g_driver_state);
