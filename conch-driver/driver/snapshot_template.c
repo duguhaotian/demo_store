@@ -79,7 +79,7 @@ int snapshot_template_create(struct ioctl_create_template *args)
     template->mdev.fops = &snapshot_fops;  /* Defined in snapshot_mmap.c */
     template->mdev.mode = 0600;
 
-    ret = misc_device_register(&template->mdev);
+    ret = misc_register(&template->mdev);
     if (ret) {
         kfree(template->mdev.name);
         kfree(template);
@@ -112,7 +112,7 @@ int snapshot_template_delete(struct ioctl_delete_template *args)
     list_del(&template->list);
     spin_unlock(&g_driver_state->template_lock);
 
-    misc_device_unregister(&template->mdev);
+    misc_deregister(&template->mdev);
     kfree(template->mdev.name);
     kfree(template);
 

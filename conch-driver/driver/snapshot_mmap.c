@@ -4,6 +4,7 @@
 #include <linux/pagemap.h>
 #include <linux/rbtree.h>
 #include <linux/slab.h>
+#include <asm/pgtable.h>
 
 /* Forward declarations */
 extern long snapshot_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
@@ -200,7 +201,7 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
 
     /* Map page to VMA */
     pfn = page_to_pfn(phys_entry->page);
-    ret = vmf_insert_pfn_prot(vmf, pfn, vmf->vma->vm_page_prot);
+    ret = vmf_insert_pfn_prot(vmf->vma, vmf->address, pfn, vmf->vma->vm_page_prot);
     if (ret != VM_FAULT_NOPAGE) {
         snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
         return ret;
@@ -356,8 +357,8 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     vma->vm_ops = &snapshot_vm_ops;
 
     /* Make mappings read-only for COW */
-    vma->vm_page_prot = pgprot_writeprotect(vma->vm_page_prot);
-    vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
+    vma->vm_page_prot = __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW);
+    vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
 
     return 0;
 }

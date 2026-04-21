@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/slab.h>
+#include <linux/miscdevice.h>
 #include "snapshot_types.h"
 
 MODULE_LICENSE("GPL");
@@ -43,7 +44,7 @@ static void __exit snapshot_exit(void)
     list_for_each_entry_safe(template, tmp,
                              &g_driver_state->template_list, list) {
         list_del(&template->list);
-        misc_device_unregister(&template->mdev);
+        misc_deregister(&template->mdev);
         kfree(template);
     }
     spin_unlock(&g_driver_state->template_lock);
