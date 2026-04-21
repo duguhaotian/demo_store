@@ -83,6 +83,10 @@ struct snapshot_template {
     char page_table_path[PATH_MAX_LEN];
     char pages_path[PATH_MAX_LEN];
 
+    /* Pre-opened file pointers for fault handler */
+    struct file *page_table_file;
+    struct file *pages_file;
+
     struct vma_snapshot_data *first_vma_data;
 
     struct miscdevice mdev;

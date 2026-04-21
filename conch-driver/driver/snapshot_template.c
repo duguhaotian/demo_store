@@ -47,35 +47,41 @@ int snapshot_template_create(struct ioctl_create_template *args)
     pr_info("snapshot_driver: page_table_path='%s'\n", args->page_table_path);
     pr_info("snapshot_driver: pages_path='%s'\n", args->pages_path);
 
-    /* Validate paths */
+    /* Check if template ID already exists */
+    if (template_id_exists(args->template_id))
+        return -EEXIST;
+
+    /* Open and keep file pointers for fault handler */
     pt_file = filp_open(args->page_table_path, O_RDONLY, 0);
     if (IS_ERR(pt_file)) {
         pr_err("snapshot_driver: failed to open page_table_path: %ld\n",
                PTR_ERR(pt_file));
         return -EINVAL;
     }
-    filp_close(pt_file, NULL);
 
     pages_file = filp_open(args->pages_path, O_RDONLY, 0);
     if (IS_ERR(pages_file)) {
         pr_err("snapshot_driver: failed to open pages_path: %ld\n",
                PTR_ERR(pages_file));
+        filp_close(pt_file, NULL);
         return -EINVAL;
     }
-    filp_close(pages_file, NULL);
-
-    /* Check if template ID already exists */
-    if (template_id_exists(args->template_id))
-        return -EEXIST;
 
     template = kzalloc(sizeof(*template), GFP_KERNEL);
-    if (!template)
+    if (!template) {
+        filp_close(pt_file, NULL);
+        filp_close(pages_file, NULL);
         return -ENOMEM;
+    }
 
     strncpy(template->template_id, args->template_id, TEMPLATE_ID_MAX_LEN);
     template->total_size = args->total_size;
     strncpy(template->page_table_path, args->page_table_path, PATH_MAX_LEN);
     strncpy(template->pages_path, args->pages_path, PATH_MAX_LEN);
+
+    /* Store opened file pointers */
+    template->page_table_file = pt_file;
+    template->pages_file = pages_file;
 
     atomic_set(&template->ref_count, 0);
     template->first_vma_data = NULL;
@@ -84,6 +90,8 @@ int snapshot_template_create(struct ioctl_create_template *args)
     template->mdev.minor = MISC_DYNAMIC_MINOR;
     template->mdev.name = kasprintf(GFP_KERNEL, "snapshot_%s", args->template_id);
     if (!template->mdev.name) {
+        filp_close(pt_file, NULL);
+        filp_close(pages_file, NULL);
         kfree(template);
         return -ENOMEM;
     }
@@ -92,6 +100,8 @@ int snapshot_template_create(struct ioctl_create_template *args)
 
     ret = misc_register(&template->mdev);
     if (ret) {
+        filp_close(pt_file, NULL);
+        filp_close(pages_file, NULL);
         kfree(template->mdev.name);
         kfree(template);
         return ret;
@@ -122,6 +132,12 @@ int snapshot_template_delete(struct ioctl_delete_template *args)
     spin_lock(&g_driver_state->template_lock);
     list_del(&template->list);
     spin_unlock(&g_driver_state->template_lock);
+
+    /* Close file pointers */
+    if (template->page_table_file)
+        filp_close(template->page_table_file, NULL);
+    if (template->pages_file)
+        filp_close(template->pages_file, NULL);
 
     misc_deregister(&template->mdev);
     kfree(template->mdev.name);

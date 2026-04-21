@@ -64,22 +64,16 @@ static int va_to_pa_insert(struct rb_root *root, struct va_to_pa_entry *new)
     return 0;
 }
 
-/* Read page_table entry from file */
-static int read_page_table_entry(const char *path, uint64_t va,
+/* Read page_table entry from pre-opened file */
+static int read_page_table_entry(struct file *file, uint64_t va,
                                   struct page_table_entry *pte)
 {
-    struct file *file;
     loff_t offset;
     ssize_t ret;
 
     offset = (va / PAGE_SIZE) * PAGE_TABLE_ENTRY_SIZE;
 
-    file = filp_open(path, O_RDONLY, 0);
-    if (IS_ERR(file))
-        return PTR_ERR(file);
-
     ret = kernel_read(file, pte, sizeof(*pte), &offset);
-    filp_close(file, NULL);
 
     if (ret != sizeof(*pte))
         return -EIO;
@@ -87,21 +81,16 @@ static int read_page_table_entry(const char *path, uint64_t va,
     return 0;
 }
 
-/* Read page from pages.bin using open addressing */
-static int read_page_data(const char *path, uint64_t hash_idx,
+/* Read page from pre-opened pages.bin using open addressing */
+static int read_page_data(struct file *file, uint64_t hash_idx,
                            void *data)
 {
-    struct file *file;
     loff_t offset;
     ssize_t ret;
     uint64_t file_index;
     uint64_t slot_hash;
     uint32_t probe;
     char header[8];
-
-    file = filp_open(path, O_RDONLY, 0);
-    if (IS_ERR(file))
-        return PTR_ERR(file);
 
     /* Open addressing lookup */
     file_index = hash_idx % g_driver_state->hash_modulus;
@@ -112,7 +101,6 @@ static int read_page_data(const char *path, uint64_t hash_idx,
         /* Read header */
         ret = kernel_read(file, header, 8, &offset);
         if (ret != 8) {
-            filp_close(file, NULL);
             return -EIO;
         }
 
@@ -122,7 +110,6 @@ static int read_page_data(const char *path, uint64_t hash_idx,
             /* Found matching slot */
             offset = file_index * SLOT_SIZE + 8;
             ret = kernel_read(file, data, PAGE_SIZE, &offset);
-            filp_close(file, NULL);
 
             if (ret != PAGE_SIZE)
                 return -EIO;
@@ -132,7 +119,6 @@ static int read_page_data(const char *path, uint64_t hash_idx,
 
         if (slot_hash == 0) {
             /* Empty slot, page not found */
-            filp_close(file, NULL);
             return -ENOENT;
         }
 
@@ -140,7 +126,6 @@ static int read_page_data(const char *path, uint64_t hash_idx,
         file_index = (file_index + 1) % g_driver_state->hash_modulus;
     }
 
-    filp_close(file, NULL);
     return -ENOENT;  /* Max probe count exceeded */
 }
 
@@ -161,6 +146,8 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     template = vma_data->template;
     va_offset = vmf->address - vmf->vma->vm_start;
 
+    pr_debug("snapshot_driver: fault at va_offset=%llu\n", va_offset);
+
     /* Check if already mapped */
     va_entry = va_to_pa_lookup(&vma_data->va_to_pa_map, va_offset);
     if (va_entry) {
@@ -168,10 +155,12 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
         return VM_FAULT_NOPAGE;
     }
 
-    /* Read page_table entry */
-    ret = read_page_table_entry(template->page_table_path, va_offset, &pte);
-    if (ret)
+    /* Read page_table entry from pre-opened file */
+    ret = read_page_table_entry(template->page_table_file, va_offset, &pte);
+    if (ret) {
+        pr_err("snapshot_driver: read_page_table_entry failed: %d\n", ret);
         return VM_FAULT_SIGBUS;
+    }
 
     /* Lookup in global pool */
     phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte.hash_idx);
@@ -180,13 +169,15 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
         /* Page already loaded */
         snapshot_pool_ref(phys_entry);
     } else {
-        /* Load from file */
-        page_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+        /* Load from file using pre-opened file pointer */
+        page_data = kmalloc(PAGE_SIZE, GFP_ATOMIC);
         if (!page_data)
             return VM_FAULT_OOM;
 
-        ret = read_page_data(template->pages_path, pte.hash_idx, page_data);
+        ret = read_page_data(template->pages_file, pte.hash_idx, page_data);
         if (ret) {
+            pr_err("snapshot_driver: read_page_data failed: %d (hash_idx=%llu)\n",
+                   ret, pte.hash_idx);
             kfree(page_data);
             return VM_FAULT_SIGBUS;
         }
@@ -203,17 +194,21 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     pfn = page_to_pfn(phys_entry->page);
     ret = vmf_insert_pfn_prot(vmf->vma, vmf->address, pfn, vmf->vma->vm_page_prot);
     if (ret != VM_FAULT_NOPAGE) {
+        pr_err("snapshot_driver: vmf_insert_pfn_prot failed: %d\n", ret);
         snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
         return ret;
     }
 
     /* Record mapping */
-    va_entry = kzalloc(sizeof(*va_entry), GFP_KERNEL);
+    va_entry = kzalloc(sizeof(*va_entry), GFP_ATOMIC);
     if (va_entry) {
         va_entry->va_offset = va_offset;
         va_entry->phys_entry = phys_entry;
         va_to_pa_insert(&vma_data->va_to_pa_map, va_entry);
     }
+
+    pr_debug("snapshot_driver: mapped page at va_offset=%llu, hash_idx=%llu\n",
+             va_offset, pte.hash_idx);
 
     return VM_FAULT_NOPAGE;
 }
@@ -230,6 +225,9 @@ static void snapshot_vma_open(struct vm_area_struct *vma)
     template = vma_data->template;
 
     atomic_inc(&template->ref_count);
+
+    pr_debug("snapshot_driver: vma_open, ref_count=%d\n",
+             atomic_read(&template->ref_count));
 
     /* Copy mappings from first VMA if exists */
     if (template->first_vma_data && template->first_vma_data != vma_data) {
@@ -255,7 +253,7 @@ static void snapshot_vma_open(struct vm_area_struct *vma)
             snapshot_pool_ref(entry->phys_entry);
 
             /* Record in this VMA's map */
-            new_entry = kzalloc(sizeof(*new_entry), GFP_KERNEL);
+            new_entry = kzalloc(sizeof(*new_entry), GFP_ATOMIC);
             if (new_entry) {
                 new_entry->va_offset = entry->va_offset;
                 new_entry->phys_entry = entry->phys_entry;

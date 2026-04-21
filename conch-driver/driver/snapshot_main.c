@@ -112,6 +112,11 @@ static void __exit snapshot_exit(void)
     list_for_each_entry_safe(template, tmp,
                              &g_driver_state->template_list, list) {
         list_del(&template->list);
+        /* Close file pointers */
+        if (template->page_table_file)
+            filp_close(template->page_table_file, NULL);
+        if (template->pages_file)
+            filp_close(template->pages_file, NULL);
         misc_deregister(&template->mdev);
         kfree(template->mdev.name);
         kfree(template);
