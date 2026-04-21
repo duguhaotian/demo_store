@@ -1,6 +1,7 @@
 #!/bin/bash
 # Generate test snapshot files
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR=${1:-"test_snapshot"}
 SIZE_MB=${2:-4}
 
@@ -21,7 +22,15 @@ for i in 1 2 3 4; do
 done
 
 # Run split tool
-split_snapshot "$OUTPUT_DIR/snapshot.mem" "$OUTPUT_DIR"
+if [ -x "$SCRIPT_DIR/../tools/split_snapshot" ]; then
+    "$SCRIPT_DIR/../tools/split_snapshot" "$OUTPUT_DIR/snapshot.mem" "$OUTPUT_DIR"
+elif command -v split_snapshot &> /dev/null; then
+    split_snapshot "$OUTPUT_DIR/snapshot.mem" "$OUTPUT_DIR"
+else
+    echo "ERROR: split_snapshot tool not found"
+    echo "Please compile it first: cd tools && make"
+    exit 1
+fi
 
 echo "Generated test snapshot in $OUTPUT_DIR"
 ls -la "$OUTPUT_DIR"
