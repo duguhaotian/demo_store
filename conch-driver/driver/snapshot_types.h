@@ -10,7 +10,7 @@
 #include <linux/miscdevice.h>
 
 /* Configuration constants */
-#define HASH_MODULUS_DEFAULT    (1ULL << 30)   /* N = 2^30 */
+#define HASH_MODULUS_DEFAULT    (1ULL << 20)   /* N = 2^20 (1M slots) */
 #define MAX_PROBE_COUNT_DEFAULT 64
 #define PAGE_TABLE_ENTRY_SIZE   16              /* 8B va + 8B hash_idx */
 #define SLOT_SIZE               (PAGE_SIZE + 8) /* 4KB + 8B header */

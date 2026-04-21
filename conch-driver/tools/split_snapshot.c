@@ -9,7 +9,7 @@
 
 #define PAGE_SIZE 4096
 #define SLOT_SIZE (PAGE_SIZE + 8)  /* 4KB + 8B header */
-#define HASH_MODULUS (1ULL << 30)
+#define HASH_MODULUS (1ULL << 20)  /* 1M slots = ~4GB max, enough for testing */
 #define MAX_PROBE_COUNT 64
 #define HEADER_SIZE 8
 
