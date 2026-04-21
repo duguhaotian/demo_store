@@ -1,0 +1,90 @@
+<mxGraphModel adaptiveColors="auto">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="10" value="管理组件" style="swimlane;startSize=25;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;horizontal=1;collapsible=0;" parent="1" vertex="1">
+      <mxGeometry x="40" y="40" width="280" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="11" value="conch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" parent="10" vertex="1">
+      <mxGeometry x="20" y="30" width="80" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="13" value="去重模块" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" parent="10" vertex="1">
+      <mxGeometry x="120" y="30" width="140" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="20" value="沙箱实例" style="swimlane;startSize=25;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;horizontal=1;collapsible=0;" parent="1" vertex="1">
+      <mxGeometry x="40" y="140" width="280" height="120" as="geometry"/>
+    </mxCell>
+    <mxCell id="21" value="vmm-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="20" y="35" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="22" value="vm-1&#xa;内存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="20" y="75" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="23" value="vmm-2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="100" y="35" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="24" value="vm-2&#xa;内存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="100" y="75" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="25" value="vmm-3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="180" y="35" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="26" value="vm-3&#xa;内存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="180" y="75" width="60" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="27" value="共享内存块" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=11;" parent="20" vertex="1">
+      <mxGeometry x="10" y="115" width="260" height="25" as="geometry"/>
+    </mxCell>
+    <mxCell id="28" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" parent="20" source="22" target="27" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="29" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="20" source="24" target="27" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="30" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.9;entryY=0;entryDx=0;entryDy=0;" parent="20" source="26" target="27" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="40" value="内核" style="swimlane;startSize=25;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=13;horizontal=1;collapsible=0;" parent="1" vertex="1">
+      <mxGeometry x="40" y="280" width="280" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="41" value="sys_restore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" parent="40" vertex="1">
+      <mxGeometry x="15" y="35" width="85" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="42" value="缺页处理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" parent="40" vertex="1">
+      <mxGeometry x="105" y="35" width="70" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="43" value="页物理索引" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=11;" parent="40" vertex="1">
+      <mxGeometry x="180" y="35" width="90" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="50" value="快照服务" style="swimlane;startSize=25;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=13;horizontal=1;collapsible=0;" parent="1" vertex="1">
+      <mxGeometry x="360" y="40" width="160" height="340" as="geometry"/>
+    </mxCell>
+    <mxCell id="51" value="快照服务器" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" parent="50" vertex="1">
+      <mxGeometry x="20" y="35" width="120" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="52" value="内存视图模板" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" parent="50" vertex="1">
+      <mxGeometry x="20" y="85" width="120" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="53" value="页内容索引" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" parent="50" vertex="1">
+      <mxGeometry x="20" y="135" width="120" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="54" value="唯一页存储" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" parent="50" vertex="1">
+      <mxGeometry x="20" y="185" width="120" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="60" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="13" target="50" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="61" value="快照上传" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="300" y="55" width="60" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="62" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;strokeWidth=2;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="42" target="50" edge="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="63" value="缺页获取" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="300" y="305" width="60" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="70" value="" style="shape=arrow;arrowType=1;html=1;strokeColor=#666666;fillColor=#666666;direction=1;strokeWidth=2;" parent="1" vertex="1">
+      <mxGeometry x="170" y="260" width="20" height="20" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>

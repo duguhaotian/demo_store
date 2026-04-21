@@ -1,0 +1,3 @@
+obj-m := snapshot_driver.o
+snapshot_driver-objs := snapshot_main.o snapshot_pool.o snapshot_ioctl.o \
+                        snapshot_mmap.o snapshot_template.o
