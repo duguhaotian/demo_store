@@ -11,12 +11,19 @@ long snapshot_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     void __user *argp = (void __user *)arg;
     int ret;
 
+    pr_info("snapshot_driver: ioctl cmd=%u received\n", cmd);
+
     switch (cmd) {
     case IOCTL_CREATE_TEMPLATE: {
         struct ioctl_create_template args;
-        if (copy_from_user(&args, argp, sizeof(args)))
+        if (copy_from_user(&args, argp, sizeof(args))) {
+            pr_err("snapshot_driver: copy_from_user failed\n");
             return -EFAULT;
+        }
+        pr_info("snapshot_driver: IOCTL_CREATE_TEMPLATE, template_id='%s'\n",
+                args.template_id);
         ret = snapshot_template_create(&args);
+        pr_info("snapshot_driver: create result=%d\n", ret);
         return ret;
     }
 

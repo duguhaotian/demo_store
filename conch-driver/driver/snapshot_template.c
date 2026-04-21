@@ -42,15 +42,26 @@ int snapshot_template_create(struct ioctl_create_template *args)
     struct file *pt_file, *pages_file;
     int ret;
 
+    pr_info("snapshot_driver: create template '%s', total_size=%llu\n",
+            args->template_id, args->total_size);
+    pr_info("snapshot_driver: page_table_path='%s'\n", args->page_table_path);
+    pr_info("snapshot_driver: pages_path='%s'\n", args->pages_path);
+
     /* Validate paths */
     pt_file = filp_open(args->page_table_path, O_RDONLY, 0);
-    if (IS_ERR(pt_file))
+    if (IS_ERR(pt_file)) {
+        pr_err("snapshot_driver: failed to open page_table_path: %ld\n",
+               PTR_ERR(pt_file));
         return -EINVAL;
+    }
     filp_close(pt_file, NULL);
 
     pages_file = filp_open(args->pages_path, O_RDONLY, 0);
-    if (IS_ERR(pages_file))
+    if (IS_ERR(pages_file)) {
+        pr_err("snapshot_driver: failed to open pages_path: %ld\n",
+               PTR_ERR(pages_file));
         return -EINVAL;
+    }
     filp_close(pages_file, NULL);
 
     /* Check if template ID already exists */
