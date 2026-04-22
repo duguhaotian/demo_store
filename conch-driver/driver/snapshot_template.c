@@ -89,10 +89,13 @@ int snapshot_template_create(struct ioctl_create_template *args)
     ssize_t read_ret;
     int ret;
 
-    pr_info("snapshot_driver: create template '%s', total_size=%llu\n",
-            args->template_id, args->total_size);
-    pr_info("snapshot_driver: page_table_path='%s'\n", args->page_table_path);
-    pr_info("snapshot_driver: pages_path='%s'\n", args->pages_path);
+    /* Calculate page count */
+    page_count = args->total_size / PAGE_SIZE;
+
+    pr_info("create_template: id='%s', size=%llu, page_count=%llu\n",
+            args->template_id, args->total_size, page_count);
+    pr_info("create_template: page_table='%s', pages='%s'\n",
+            args->page_table_path, args->pages_path);
 
     /* Check if template ID already exists */
     if (template_id_exists(args->template_id))
@@ -114,9 +117,6 @@ int snapshot_template_create(struct ioctl_create_template *args)
         filp_close(page_table_file, NULL);
         return -EINVAL;
     }
-
-    /* Calculate page count */
-    page_count = args->total_size / PAGE_SIZE;
 
     /* Allocate and cache page_table in memory */
     template = kzalloc(sizeof(*template) + page_count * sizeof(struct page_table_entry),
@@ -174,8 +174,8 @@ int snapshot_template_create(struct ioctl_create_template *args)
     list_add_tail(&template->list, &g_driver_state->template_list);
     spin_unlock(&g_driver_state->template_lock);
 
-    pr_info("snapshot_driver: created template %s at /dev/%s (cached %llu page_table entries)\n",
-            args->template_id, template->mdev.name, page_count);
+    pr_info("create_template: SUCCESS, device='/dev/%s', page_table_entries=%llu\n",
+            template->mdev.name, page_count);
 
     return 0;
 }

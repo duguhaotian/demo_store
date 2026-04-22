@@ -43,9 +43,13 @@ int snapshot_preload_template(struct snapshot_template *template)
     /* Load each page using cached page_table */
     for (i = 0; i < template->page_count; i++) {
         pte = &template->page_table_cache[i];
+        pr_info("preload[%llu]: va=%llu, hash_idx=%llu\n",
+                i, pte->va_offset, pte->hash_idx);
 
         /* Check if page already in pool (no ref increment) */
         if (snapshot_pool_lookup_noref(&g_driver_state->page_pool, pte->hash_idx)) {
+            pr_info("preload[%llu]: hash_idx=%llu already in pool (dedup)\n",
+                    i, pte->hash_idx);
             continue;  /* Already loaded (dedup) */
         }
 
@@ -133,6 +137,8 @@ static int read_page_data(struct file *file, uint64_t hash_idx,
 
     /* Open addressing lookup */
     file_index = hash_idx % g_driver_state->hash_modulus;
+    pr_info("read_page: hash_idx=%llu, modulus=%llu, initial_file_index=%llu\n",
+            hash_idx, g_driver_state->hash_modulus, file_index);
 
     for (probe = 0; probe < g_driver_state->max_probe_count; probe++) {
         offset = file_index * SLOT_SIZE;
@@ -145,8 +151,13 @@ static int read_page_data(struct file *file, uint64_t hash_idx,
 
         slot_hash = *((uint64_t *)header);
 
+        pr_info("read_page: probe=%u, file_index=%llu, offset=%lld, slot_hash=%llu\n",
+                probe, file_index, (long long)offset, slot_hash);
+
         if (slot_hash == hash_idx) {
             /* Found matching slot */
+            pr_info("read_page: MATCH at probe=%u, file_index=%llu\n",
+                    probe, file_index);
             offset = file_index * SLOT_SIZE + 8;
             ret = kernel_read(file, data, PAGE_SIZE, &offset);
 
@@ -158,6 +169,8 @@ static int read_page_data(struct file *file, uint64_t hash_idx,
 
         if (slot_hash == 0) {
             /* Empty slot, page not found */
+            pr_info("read_page: NOT_FOUND (empty slot at probe=%u, file_index=%llu)\n",
+                    probe, file_index);
             return -ENOENT;
         }
 
@@ -165,6 +178,8 @@ static int read_page_data(struct file *file, uint64_t hash_idx,
         file_index = (file_index + 1) % g_driver_state->hash_modulus;
     }
 
+    pr_info("read_page: NOT_FOUND (max probes=%u exceeded)\n",
+            g_driver_state->max_probe_count);
     return -ENOENT;  /* Max probe count exceeded */
 }
 
@@ -186,8 +201,8 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     va_offset = vmf->address - vmf->vma->vm_start;
     page_index = va_offset / PAGE_SIZE;
 
-    pr_debug("snapshot_driver: fault at va_offset=%llu, page_index=%llu\n",
-             va_offset, page_index);
+    pr_info("fault: address=0x%lx, va_offset=%llu, page_index=%llu\n",
+            vmf->address, va_offset, page_index);
 
     /* Check bounds */
     if (page_index >= template->page_count) {
@@ -206,13 +221,17 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     /* Get hash_idx from cached page_table */
     pte = &template->page_table_cache[page_index];
 
+    pr_info("fault: page_index=%llu -> hash_idx=%llu\n",
+            page_index, pte->hash_idx);
+
     /* Lookup in global pool (should be preloaded) */
     phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte->hash_idx);
     if (!phys_entry) {
-        pr_err("snapshot_driver: page not in pool (hash_idx=%llu) - preload missing?\n",
+        pr_err("fault: hash_idx=%llu NOT in pool - preload missing?\n",
                pte->hash_idx);
         return VM_FAULT_SIGBUS;
     }
+    pr_info("fault: hash_idx=%llu FOUND in pool\n", pte->hash_idx);
 
     /* Map page to VMA */
     pfn = page_to_pfn(phys_entry->page);
@@ -372,6 +391,9 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 
     strncpy(template_id, dev_name + 9, TEMPLATE_ID_MAX_LEN);
 
+    pr_info("mmap: template='%s', vm_start=0x%lx, vm_end=0x%lx, size=%lu\n",
+            template_id, vma->vm_start, vma->vm_end, vma->vm_end - vma->vm_start);
+
     /* Get template with ref_count increment */
     template = snapshot_template_find_ref(template_id);
     if (!template)
@@ -386,13 +408,16 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     /* Preload all pages if not already done */
     if (atomic_cmpxchg(&template->preload_done, 0, 1) == 0) {
         /* First mmap - preload pages */
+        pr_info("mmap: preload_needed=true, starting preload\n");
         ret = snapshot_preload_template(template);
         if (ret) {
             atomic_set(&template->preload_done, 0);  /* Reset for retry */
             snapshot_template_unref(template);
-            pr_err("snapshot_driver: preload failed: %d\n", ret);
+            pr_err("mmap: preload FAILED, ret=%d\n", ret);
             return ret;
         }
+    } else {
+        pr_info("mmap: preload_needed=false (already done)\n");
     }
 
     /* Setup VMA data */
