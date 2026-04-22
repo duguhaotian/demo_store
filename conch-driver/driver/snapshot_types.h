@@ -79,13 +79,16 @@ struct vma_snapshot_data {
 struct snapshot_template {
     char template_id[TEMPLATE_ID_MAX_LEN];
     uint64_t total_size;
+    uint64_t page_count;  /* Number of pages */
 
-    char page_table_path[PATH_MAX_LEN];
-    char pages_path[PATH_MAX_LEN];
+    /* Cached page_table in memory (for fast fault handler lookup) */
+    struct page_table_entry *page_table_cache;
 
-    /* Pre-opened file pointers for fault handler */
-    struct file *page_table_file;
+    /* Pre-opened file pointers for preload */
     struct file *pages_file;
+
+    /* Preload completion flag */
+    atomic_t preload_done;
 
     struct vma_snapshot_data *first_vma_data;
 
@@ -114,7 +117,13 @@ extern const struct file_operations snapshot_fops;
 /* Template functions (defined in snapshot_template.c) */
 extern struct snapshot_template *snapshot_template_find(const char *id);
 
+/* Template functions (defined in snapshot_template.c) */
+extern struct snapshot_template *snapshot_template_find_ref(const char *id);
+extern void snapshot_template_unref(struct snapshot_template *template);
+extern struct snapshot_template *snapshot_template_find(const char *id);  /* Internal use only */
+
 /* Pool functions (defined in snapshot_pool.c) */
+extern struct phys_page_entry *snapshot_pool_lookup_noref(struct global_page_pool *pool, uint64_t hash_idx);
 extern struct phys_page_entry *snapshot_pool_lookup(struct global_page_pool *pool, uint64_t hash_idx);
 extern struct phys_page_entry *snapshot_pool_add(struct global_page_pool *pool, uint64_t hash_idx, void *data);
 extern void snapshot_pool_ref(struct phys_page_entry *entry);
@@ -123,5 +132,8 @@ extern void snapshot_pool_unref(struct global_page_pool *pool, struct phys_page_
 /* Page pool initialization */
 int snapshot_pool_init(struct global_page_pool *pool);
 void snapshot_pool_destroy(struct global_page_pool *pool);
+
+/* Preload function (defined in snapshot_mmap.c) */
+int snapshot_preload_template(struct snapshot_template *template);
 
 #endif /* _SNAPSHOT_TYPES_H */

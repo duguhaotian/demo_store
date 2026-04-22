@@ -4,10 +4,12 @@
 #include <linux/pagemap.h>
 #include <linux/rbtree.h>
 #include <linux/slab.h>
+#include <linux/compiler.h>
 #include <asm/pgtable.h>
 
 /* Forward declarations */
 extern long snapshot_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static int read_page_data(struct file *file, uint64_t hash_idx, void *data);
 
 /* File operations structure (will be completed in this file) */
 static int snapshot_open(struct inode *inode, struct file *file);
@@ -21,6 +23,60 @@ const struct file_operations snapshot_fops = {
     .mmap = snapshot_mmap,
     .unlocked_ioctl = snapshot_ioctl,
 };
+
+/* Preload all pages for a template (called during mmap, before fault handling) */
+int snapshot_preload_template(struct snapshot_template *template)
+{
+    struct page_table_entry *pte;
+    void *page_data;
+    uint64_t i;
+    int ret;
+    int failed_pages = 0;
+
+    pr_info("snapshot_driver: preloading template '%s' (%llu pages)\n",
+            template->template_id, template->page_count);
+
+    page_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page_data)
+        return -ENOMEM;
+
+    /* Load each page using cached page_table */
+    for (i = 0; i < template->page_count; i++) {
+        pte = &template->page_table_cache[i];
+
+        /* Check if page already in pool (no ref increment) */
+        if (snapshot_pool_lookup_noref(&g_driver_state->page_pool, pte->hash_idx)) {
+            continue;  /* Already loaded (dedup) */
+        }
+
+        /* Read page data from pages.bin */
+        ret = read_page_data(template->pages_file, pte->hash_idx, page_data);
+        if (ret) {
+            pr_err("snapshot_driver: failed to read page data for hash_idx=%llu\n",
+                   pte->hash_idx);
+            failed_pages++;
+            continue;
+        }
+
+        /* Add to pool (ref_count = 1, will be balanced by fault handler) */
+        if (!snapshot_pool_add(&g_driver_state->page_pool, pte->hash_idx, page_data)) {
+            pr_err("snapshot_driver: failed to add page to pool\n");
+            failed_pages++;
+        }
+    }
+
+    kfree(page_data);
+
+    /* Fail if any pages couldn't be loaded */
+    if (failed_pages > 0) {
+        pr_err("snapshot_driver: preload failed for %d pages\n", failed_pages);
+        return -EIO;
+    }
+
+    pr_info("snapshot_driver: preload complete, loaded %llu unique pages\n",
+            g_driver_state->page_pool.total_pages);
+    return 0;
+}
 
 /* VA to PA map helpers */
 static struct va_to_pa_entry *va_to_pa_lookup(struct rb_root *root, uint64_t va)
@@ -60,23 +116,6 @@ static int va_to_pa_insert(struct rb_root *root, struct va_to_pa_entry *new)
 
     rb_link_node(&new->rb_node, parent, link);
     rb_insert_color(&new->rb_node, root);
-
-    return 0;
-}
-
-/* Read page_table entry from pre-opened file */
-static int read_page_table_entry(struct file *file, uint64_t va,
-                                  struct page_table_entry *pte)
-{
-    loff_t offset;
-    ssize_t ret;
-
-    offset = (va / PAGE_SIZE) * PAGE_TABLE_ENTRY_SIZE;
-
-    ret = kernel_read(file, pte, sizeof(*pte), &offset);
-
-    if (ret != sizeof(*pte))
-        return -EIO;
 
     return 0;
 }
@@ -129,24 +168,33 @@ static int read_page_data(struct file *file, uint64_t hash_idx,
     return -ENOENT;  /* Max probe count exceeded */
 }
 
-/* Fault handler */
+/* Fault handler - only maps preloaded pages, uses cached page_table */
 static vm_fault_t snapshot_fault(struct vm_fault *vmf)
 {
     struct vma_snapshot_data *vma_data;
     struct snapshot_template *template;
-    struct page_table_entry pte;
+    struct page_table_entry *pte;
     struct phys_page_entry *phys_entry;
     struct va_to_pa_entry *va_entry;
     uint64_t va_offset;
+    uint64_t page_index;
     unsigned long pfn;
-    void *page_data;
-    int ret;
+    vm_fault_t ret;
 
     vma_data = vmf->vma->vm_private_data;
     template = vma_data->template;
     va_offset = vmf->address - vmf->vma->vm_start;
+    page_index = va_offset / PAGE_SIZE;
 
-    pr_debug("snapshot_driver: fault at va_offset=%llu\n", va_offset);
+    pr_debug("snapshot_driver: fault at va_offset=%llu, page_index=%llu\n",
+             va_offset, page_index);
+
+    /* Check bounds */
+    if (page_index >= template->page_count) {
+        pr_err("snapshot_driver: page_index out of bounds: %llu >= %llu\n",
+               page_index, template->page_count);
+        return VM_FAULT_SIGBUS;
+    }
 
     /* Check if already mapped */
     va_entry = va_to_pa_lookup(&vma_data->va_to_pa_map, va_offset);
@@ -155,39 +203,15 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
         return VM_FAULT_NOPAGE;
     }
 
-    /* Read page_table entry from pre-opened file */
-    ret = read_page_table_entry(template->page_table_file, va_offset, &pte);
-    if (ret) {
-        pr_err("snapshot_driver: read_page_table_entry failed: %d\n", ret);
+    /* Get hash_idx from cached page_table */
+    pte = &template->page_table_cache[page_index];
+
+    /* Lookup in global pool (should be preloaded) */
+    phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte->hash_idx);
+    if (!phys_entry) {
+        pr_err("snapshot_driver: page not in pool (hash_idx=%llu) - preload missing?\n",
+               pte->hash_idx);
         return VM_FAULT_SIGBUS;
-    }
-
-    /* Lookup in global pool */
-    phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte.hash_idx);
-
-    if (phys_entry) {
-        /* Page already loaded */
-        snapshot_pool_ref(phys_entry);
-    } else {
-        /* Load from file using pre-opened file pointer */
-        page_data = kmalloc(PAGE_SIZE, GFP_ATOMIC);
-        if (!page_data)
-            return VM_FAULT_OOM;
-
-        ret = read_page_data(template->pages_file, pte.hash_idx, page_data);
-        if (ret) {
-            pr_err("snapshot_driver: read_page_data failed: %d (hash_idx=%llu)\n",
-                   ret, pte.hash_idx);
-            kfree(page_data);
-            return VM_FAULT_SIGBUS;
-        }
-
-        phys_entry = snapshot_pool_add(&g_driver_state->page_pool,
-                                        pte.hash_idx, page_data);
-        kfree(page_data);
-
-        if (!phys_entry)
-            return VM_FAULT_OOM;
     }
 
     /* Map page to VMA */
@@ -208,7 +232,7 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     }
 
     pr_debug("snapshot_driver: mapped page at va_offset=%llu, hash_idx=%llu\n",
-             va_offset, pte.hash_idx);
+             va_offset, pte->hash_idx);
 
     return VM_FAULT_NOPAGE;
 }
@@ -218,6 +242,7 @@ static void snapshot_vma_open(struct vm_area_struct *vma)
 {
     struct vma_snapshot_data *vma_data;
     struct snapshot_template *template;
+    struct vma_snapshot_data *first_vma;
     struct va_to_pa_entry *entry;
     int ret;
 
@@ -229,13 +254,26 @@ static void snapshot_vma_open(struct vm_area_struct *vma)
     pr_debug("snapshot_driver: vma_open, ref_count=%d\n",
              atomic_read(&template->ref_count));
 
-    /* Copy mappings from first VMA if exists */
-    if (template->first_vma_data && template->first_vma_data != vma_data) {
+    /* Read first_vma_data atomically */
+    first_vma = READ_ONCE(template->first_vma_data);
+
+    if (!first_vma) {
+        /* Try to set as first_vma_data */
+        if (cmpxchg(&template->first_vma_data, NULL, vma_data) == NULL) {
+            vma_data->is_first_vma = true;
+            return;  /* Successfully set as first */
+        }
+        /* Someone else set it first, re-read */
+        first_vma = READ_ONCE(template->first_vma_data);
+    }
+
+    /* Copy mappings from first VMA if not this one */
+    if (first_vma && first_vma != vma_data) {
         struct rb_node *node;
         struct va_to_pa_entry *new_entry;
         unsigned long pfn;
 
-        for (node = rb_first(&template->first_vma_data->va_to_pa_map);
+        for (node = rb_first(&first_vma->va_to_pa_map);
              node;
              node = rb_next(node)) {
             entry = rb_entry(node, struct va_to_pa_entry, rb_node);
@@ -260,9 +298,6 @@ static void snapshot_vma_open(struct vm_area_struct *vma)
                 va_to_pa_insert(&vma_data->va_to_pa_map, new_entry);
             }
         }
-    } else if (!template->first_vma_data) {
-        template->first_vma_data = vma_data;
-        vma_data->is_first_vma = true;
     }
 }
 
@@ -291,13 +326,15 @@ static void snapshot_vma_close(struct vm_area_struct *vma)
         kfree(entry);
     }
 
-    /* Clear first_vma_data if this was it */
-    if (template->first_vma_data == vma_data)
-        template->first_vma_data = NULL;
+    /* Clear first_vma_data if this was it (atomic) */
+    if (READ_ONCE(template->first_vma_data) == vma_data) {
+        WRITE_ONCE(template->first_vma_data, NULL);
+    }
 
     kfree(vma_data);
 
-    atomic_dec(&template->ref_count);
+    /* Decrement template ref_count, may free if zero */
+    snapshot_template_unref(template);
 }
 
 static const struct vm_operations_struct snapshot_vm_ops = {
@@ -319,13 +356,14 @@ static int snapshot_release(struct inode *inode, struct file *file)
     return 0;
 }
 
-/* mmap handler - corrected version from Step 2 */
+/* mmap handler - preload pages on first mmap */
 static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 {
     struct snapshot_template *template;
     struct vma_snapshot_data *vma_data;
     char template_id[TEMPLATE_ID_MAX_LEN];
     const char *dev_name;
+    int ret;
 
     /* Get device name and extract template ID */
     dev_name = file->f_path.dentry->d_name.name;
@@ -334,18 +372,35 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 
     strncpy(template_id, dev_name + 9, TEMPLATE_ID_MAX_LEN);
 
-    template = snapshot_template_find(template_id);
+    /* Get template with ref_count increment */
+    template = snapshot_template_find_ref(template_id);
     if (!template)
         return -EINVAL;
 
     /* Check size */
-    if (vma->vm_end - vma->vm_start > template->total_size)
+    if (vma->vm_end - vma->vm_start > template->total_size) {
+        snapshot_template_unref(template);
         return -EINVAL;
+    }
+
+    /* Preload all pages if not already done */
+    if (atomic_cmpxchg(&template->preload_done, 0, 1) == 0) {
+        /* First mmap - preload pages */
+        ret = snapshot_preload_template(template);
+        if (ret) {
+            atomic_set(&template->preload_done, 0);  /* Reset for retry */
+            snapshot_template_unref(template);
+            pr_err("snapshot_driver: preload failed: %d\n", ret);
+            return ret;
+        }
+    }
 
     /* Setup VMA data */
     vma_data = kzalloc(sizeof(*vma_data), GFP_KERNEL);
-    if (!vma_data)
+    if (!vma_data) {
+        snapshot_template_unref(template);
         return -ENOMEM;
+    }
 
     vma_data->template = template;
     vma_data->va_to_pa_map = RB_ROOT;
@@ -357,6 +412,9 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     /* Make mappings read-only for COW */
     vma->vm_page_prot = __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW);
     vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
+
+    pr_debug("snapshot_driver: mmap complete, ref_count=%d\n",
+             atomic_read(&template->ref_count));
 
     return 0;
 }

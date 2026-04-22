@@ -44,6 +44,24 @@ void snapshot_pool_destroy(struct global_page_pool *pool)
     spin_unlock(&pool->lock);
 }
 
+struct phys_page_entry *snapshot_pool_lookup_noref(struct global_page_pool *pool,
+                                                     uint64_t hash_idx)
+{
+    struct phys_page_entry *entry;
+    uint64_t bucket = hash_to_bucket(hash_idx);
+
+    spin_lock(&pool->lock);
+    hlist_for_each_entry(entry, &pool->buckets[bucket], node) {
+        if (entry->hash_idx == hash_idx) {
+            spin_unlock(&pool->lock);
+            return entry;  /* Return without incrementing ref_count */
+        }
+    }
+    spin_unlock(&pool->lock);
+
+    return NULL;
+}
+
 struct phys_page_entry *snapshot_pool_lookup(struct global_page_pool *pool,
                                                uint64_t hash_idx)
 {
@@ -84,7 +102,7 @@ struct phys_page_entry *snapshot_pool_add(struct global_page_pool *pool,
     }
     spin_unlock(&pool->lock);
 
-    /* Not found - create new entry (allocations outside lock) */
+    /* Not found - create new entry (preload context allows blocking) */
     entry = kzalloc(sizeof(*entry), GFP_KERNEL);
     if (!entry)
         return NULL;
