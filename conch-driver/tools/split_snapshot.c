@@ -51,16 +51,16 @@ static int write_page_to_slot(const char *pages_path, uint64_t hash_idx,
         /* Read existing header (if any) */
         ssize_t ret = pread(fd, header, HEADER_SIZE, offset);
 
-        if (ret < HEADER_SIZE) {
-            /* Empty or new slot */
+        memcpy(&slot_hash, header, HEADER_SIZE);
+
+        if (ret < HEADER_SIZE || slot_hash == 0) {
+            /* Empty slot (beyond EOF or hole) */
             memcpy(header, &hash_idx, HEADER_SIZE);
             pwrite(fd, header, HEADER_SIZE, offset);
             pwrite(fd, data, PAGE_SIZE, offset + HEADER_SIZE);
             close(fd);
             return 0;
         }
-
-        memcpy(&slot_hash, header, HEADER_SIZE);
 
         if (slot_hash == hash_idx) {
             /* Already exists, same content - dedup */
