@@ -233,9 +233,9 @@ static vm_fault_t snapshot_fault(struct vm_fault *vmf)
     }
     pr_info("fault: hash_idx=%llu FOUND in pool\n", pte->hash_idx);
 
-    /* Map page to VMA */
+    /* Map page to VMA - use vmf_insert_pfn for PFN mappings */
     pfn = page_to_pfn(phys_entry->page);
-    ret = vmf_insert_pfn_prot(vmf->vma, vmf->address, pfn, vmf->vma->vm_page_prot);
+    ret = vmf_insert_pfn(vmf->vma, vmf->address, pfn);
     if (ret != VM_FAULT_NOPAGE) {
         pr_err("snapshot_driver: vmf_insert_pfn_prot failed: %d\n", ret);
         snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
@@ -434,9 +434,8 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     vma->vm_private_data = vma_data;
     vma->vm_ops = &snapshot_vm_ops;
 
-    /* Make mappings read-only for COW */
-    vma->vm_page_prot = __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW);
-    vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
+    /* Setup VMA for PFN mappings (read-only by default) */
+    vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_PFNMAP | VM_DONTCOPY;
 
     pr_debug("snapshot_driver: mmap complete, ref_count=%d\n",
              atomic_read(&template->ref_count));
