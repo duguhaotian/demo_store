@@ -203,15 +203,21 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     vma_data->va_to_pa_map = RB_ROOT;
 
     page_count = size / PAGE_SIZE;
-    pr_info("mmap: mapping %llu pages\n", page_count);
+    pr_info("mmap: mapping %llu pages, vm_flags=0x%lx\n", page_count, vma->vm_flags);
+    pr_info("mmap: vm_page_prot=0x%lx, VM_SHARED=%d, VM_WRITE=%d\n",
+            pgprot_val(vma->vm_page_prot),
+            (vma->vm_flags & VM_SHARED) ? 1 : 0,
+            (vma->vm_flags & VM_WRITE) ? 1 : 0);
 
+    /* NOTE: For now, do NOT modify vm_page_prot to test basic mapping */
     /* For MAP_PRIVATE with PROT_WRITE: modify vm_page_prot for COW */
+    /*
     if (!(vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE)) {
-        /* MAP_PRIVATE: map read-only, kernel handles COW on write fault */
         vma->vm_page_prot = pgprot_modify(vma->vm_page_prot,
                                           __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW));
-        pr_info("mmap: COW mode - mapping read-only for MAP_PRIVATE\n");
+        pr_info("mmap: COW mode - prot modified to 0x%lx\n", pgprot_val(vma->vm_page_prot));
     }
+    */
 
     /* Map pages with proper ref counting for RSS/PSS */
     for (i = 0; i < page_count; i++) {
@@ -237,6 +243,13 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
         /* get_page() for correct RSS accounting - kernel tracks _mapcount */
         get_page(phys_entry->page);
 
+        /* Debug: print page info before mapping */
+        pr_info("mmap[%llu]: page=%p, pfn=%lu, flags=0x%lx, ref=%d\n",
+                i, phys_entry->page, page_to_pfn(phys_entry->page),
+                phys_entry->page->flags, page_ref_count(phys_entry->page));
+        pr_info("mmap[%llu]: vm_page_prot=0x%lx, vm_flags=0x%lx\n",
+                i, pgprot_val(vma->vm_page_prot), vma->vm_flags);
+
         /* Use vm_insert_page for kernel 6.x compatibility */
         ret = vm_insert_page(vma,
                              vma->vm_start + i * PAGE_SIZE,
@@ -244,20 +257,30 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 
         if (ret) {
             pr_err("mmap: vm_insert_page failed page %llu: %d\n", i, ret);
-            put_page(phys_entry->page);
-            snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
-            /* Cleanup... */
-            while (!RB_EMPTY_ROOT(&vma_data->va_to_pa_map)) {
-                struct rb_node *node = rb_first(&vma_data->va_to_pa_map);
-                va_entry = rb_entry(node, struct va_to_pa_entry, rb_node);
-                rb_erase(node, &vma_data->va_to_pa_map);
-                put_page(va_entry->phys_entry->page);
-                snapshot_pool_unref(&g_driver_state->page_pool, va_entry->phys_entry);
-                kfree(va_entry);
+            /* Try remap_pfn_range as fallback */
+            ret = remap_pfn_range(vma,
+                                  vma->vm_start + i * PAGE_SIZE,
+                                  page_to_pfn(phys_entry->page),
+                                  PAGE_SIZE,
+                                  vma->vm_page_prot);
+            if (ret) {
+                pr_err("mmap: remap_pfn_range also failed page %llu: %d\n", i, ret);
+                put_page(phys_entry->page);
+                snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
+                /* Cleanup... */
+                while (!RB_EMPTY_ROOT(&vma_data->va_to_pa_map)) {
+                    struct rb_node *node = rb_first(&vma_data->va_to_pa_map);
+                    va_entry = rb_entry(node, struct va_to_pa_entry, rb_node);
+                    rb_erase(node, &vma_data->va_to_pa_map);
+                    put_page(va_entry->phys_entry->page);
+                    snapshot_pool_unref(&g_driver_state->page_pool, va_entry->phys_entry);
+                    kfree(va_entry);
+                }
+                kfree(vma_data);
+                snapshot_template_unref(template);
+                return ret;
             }
-            kfree(vma_data);
-            snapshot_template_unref(template);
-            return ret;
+            pr_info("mmap[%llu]: remap_pfn_range succeeded as fallback\n", i);
         }
 
         /* Track mapped page for cleanup in vma_close */
