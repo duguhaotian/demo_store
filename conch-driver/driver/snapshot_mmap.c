@@ -130,12 +130,13 @@ static int va_insert(struct rb_root *root, struct va_to_pa_entry *new)
 }
 
 /*
- * mmap handler - use remap_pfn_range with proper page ref management
+ * mmap handler - use vm_insert_page for kernel page mapping
  *
  * Key design:
- * - get_page() before remap_pfn_range for correct RSS/PSS accounting
+ * - vm_insert_page() for proper page mapping in kernel 6.x
+ * - For COW: map with read-only prot, kernel handles write fault
+ * - get_page() before insert for correct RSS/PSS accounting
  * - vm_ops tracks VMA lifecycle, releases refs on close
- * - Kernel handles COW for MAP_PRIVATE automatically
  */
 static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 {
@@ -149,7 +150,6 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     struct page_table_entry *pte;
     struct phys_page_entry *phys_entry;
     struct va_to_pa_entry *va_entry;
-    unsigned long pfn;
     int ret;
 
     /* Extract template ID */
@@ -205,6 +205,14 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     page_count = size / PAGE_SIZE;
     pr_info("mmap: mapping %llu pages\n", page_count);
 
+    /* For MAP_PRIVATE with PROT_WRITE: modify vm_page_prot for COW */
+    if (!(vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE)) {
+        /* MAP_PRIVATE: map read-only, kernel handles COW on write fault */
+        vma->vm_page_prot = pgprot_modify(vma->vm_page_prot,
+                                          __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW));
+        pr_info("mmap: COW mode - mapping read-only for MAP_PRIVATE\n");
+    }
+
     /* Map pages with proper ref counting for RSS/PSS */
     for (i = 0; i < page_count; i++) {
         pte = &template->page_table_cache[i];
@@ -229,15 +237,13 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
         /* get_page() for correct RSS accounting - kernel tracks _mapcount */
         get_page(phys_entry->page);
 
-        pfn = page_to_pfn(phys_entry->page);
-        ret = remap_pfn_range(vma,
-                              vma->vm_start + i * PAGE_SIZE,
-                              pfn,
-                              PAGE_SIZE,
-                              vma->vm_page_prot);
+        /* Use vm_insert_page for kernel 6.x compatibility */
+        ret = vm_insert_page(vma,
+                             vma->vm_start + i * PAGE_SIZE,
+                             phys_entry->page);
 
         if (ret) {
-            pr_err("mmap: remap_pfn_range failed page %llu: %d\n", i, ret);
+            pr_err("mmap: vm_insert_page failed page %llu: %d\n", i, ret);
             put_page(phys_entry->page);
             snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
             /* Cleanup... */
