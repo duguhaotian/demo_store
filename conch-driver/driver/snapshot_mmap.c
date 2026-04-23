@@ -8,13 +8,15 @@
 /* Forward declarations */
 extern long snapshot_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
-/* VMA operations for proper lifecycle management */
+/* VMA operations for on-demand page loading */
 static void snapshot_vma_open(struct vm_area_struct *vma);
 static void snapshot_vma_close(struct vm_area_struct *vma);
+static vm_fault_t snapshot_vma_fault(struct vm_fault *vmf);
 
 static const struct vm_operations_struct snapshot_vm_ops = {
     .open = snapshot_vma_open,
     .close = snapshot_vma_close,
+    .fault = snapshot_vma_fault,
 };
 
 /* File operations */
@@ -43,49 +45,52 @@ static int snapshot_release(struct inode *inode, struct file *file)
 /* VMA open: increment template ref_count */
 static void snapshot_vma_open(struct vm_area_struct *vma)
 {
-    struct snapshot_template *template = vma->vm_private_data;
+    struct vma_snapshot_data *vma_data = vma->vm_private_data;
 
-    if (template) {
-        atomic_inc(&template->ref_count);
+    if (vma_data && vma_data->template) {
+        atomic_inc(&vma_data->template->ref_count);
         pr_debug("vma_open: template='%s', ref_count=%d\n",
-                 template->template_id, atomic_read(&template->ref_count));
+                 vma_data->template->template_id,
+                 atomic_read(&vma_data->template->ref_count));
     }
 }
 
 /* VMA close: decrement template ref_count, unref mapped pages */
 static void snapshot_vma_close(struct vm_area_struct *vma)
 {
-    struct snapshot_template *template = vma->vm_private_data;
-    struct vma_snapshot_data *vma_data;
+    struct vma_snapshot_data *vma_data = vma->vm_private_data;
+    struct snapshot_template *template;
     struct rb_node *node;
     struct va_to_pa_entry *entry;
 
+    if (!vma_data)
+        return;
+
+    template = vma_data->template;
     if (!template)
         return;
 
-    vma_data = vma->vm_private_data;
-
     /* Unref all mapped pages */
-    if (vma_data && vma_data->va_to_pa_map.rb_node) {
+    if (vma_data->va_to_pa_map.rb_node) {
         while (!RB_EMPTY_ROOT(&vma_data->va_to_pa_map)) {
             node = rb_first(&vma_data->va_to_pa_map);
             entry = rb_entry(node, struct va_to_pa_entry, rb_node);
             rb_erase(node, &vma_data->va_to_pa_map);
 
             if (entry->phys_entry) {
-                /* Put the extra ref from get_page() in mmap */
+                /* Put the extra ref from get_page() in fault handler */
                 put_page(entry->phys_entry->page);
                 /* Also unref from pool */
                 snapshot_pool_unref(&g_driver_state->page_pool, entry->phys_entry);
             }
             kfree(entry);
         }
-        kfree(vma_data);
     }
 
     pr_info("vma_close: template='%s', ref_count before unref=%d\n",
             template->template_id, atomic_read(&template->ref_count));
 
+    kfree(vma_data);
     snapshot_template_unref(template);
 }
 
@@ -130,13 +135,158 @@ static int va_insert(struct rb_root *root, struct va_to_pa_entry *new)
 }
 
 /*
- * mmap handler - use vm_insert_page for kernel page mapping
+ * Fault handler - on-demand page loading
+ *
+ * Called when user accesses a page that hasn't been mapped yet.
+ * Loads page from pages.bin into pool and maps it to user space.
+ */
+static vm_fault_t snapshot_vma_fault(struct vm_fault *vmf)
+{
+    struct vma_snapshot_data *vma_data;
+    struct snapshot_template *template;
+    struct page_table_entry *pte;
+    struct phys_page_entry *phys_entry;
+    struct va_to_pa_entry *va_entry;
+    uint64_t page_index;
+    uint64_t va_offset;
+    void *page_data;
+    vm_fault_t ret = VM_FAULT_NOPAGE;
+    loff_t offset;
+    ssize_t read_ret;
+    uint64_t file_index;
+    uint64_t slot_hash;
+    uint32_t probe;
+    char header[8];
+
+    vma_data = vmf->vma->vm_private_data;
+    if (!vma_data)
+        return VM_FAULT_SIGBUS;
+
+    template = vma_data->template;
+    if (!template)
+        return VM_FAULT_SIGBUS;
+
+    /* Calculate page index from fault address */
+    va_offset = vmf->address - vmf->vma->vm_start;
+    page_index = va_offset / PAGE_SIZE;
+
+    pr_debug("fault: template='%s', page_index=%llu, address=0x%lx\n",
+             template->template_id, page_index, vmf->address);
+
+    /* Bounds check */
+    if (page_index >= template->page_count) {
+        pr_err("fault: page_index %llu out of bounds (max=%llu)\n",
+               page_index, template->page_count - 1);
+        return VM_FAULT_SIGBUS;
+    }
+
+    /* Get hash_idx from page table */
+    pte = &template->page_table_cache[page_index];
+
+    /* Lookup page in pool (may already be loaded by another process) */
+    phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte->hash_idx);
+    if (phys_entry) {
+        /* Page already in pool - map it */
+        pr_debug("fault: page_index=%llu hash_idx=%llu found in pool\n",
+                 page_index, pte->hash_idx);
+        goto map_page;
+    }
+
+    /* Page not in pool - need to load from pages.bin */
+    pr_debug("fault: loading page_index=%llu hash_idx=%llu from file\n",
+             page_index, pte->hash_idx);
+
+    /* Allocate temporary buffer for page data */
+    page_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page_data)
+        return VM_FAULT_OOM;
+
+    /* Open addressing lookup in pages.bin */
+    file_index = pte->hash_idx % g_driver_state->hash_modulus;
+
+    for (probe = 0; probe < g_driver_state->max_probe_count; probe++) {
+        offset = file_index * SLOT_SIZE;
+
+        /* Read header (8 bytes) */
+        read_ret = kernel_read(template->pages_file, header, 8, &offset);
+        if (read_ret != 8) {
+            pr_err("fault: failed read header at offset %lld\n", offset);
+            kfree(page_data);
+            return VM_FAULT_SIGBUS;
+        }
+
+        slot_hash = *((uint64_t *)header);
+
+        if (slot_hash == pte->hash_idx) {
+            /* Found - read page data */
+            offset = file_index * SLOT_SIZE + 8;
+            read_ret = kernel_read(template->pages_file, page_data, PAGE_SIZE, &offset);
+            if (read_ret != PAGE_SIZE) {
+                pr_err("fault: failed read page data\n");
+                kfree(page_data);
+                return VM_FAULT_SIGBUS;
+            }
+
+            /* Add to pool */
+            phys_entry = snapshot_pool_add(&g_driver_state->page_pool, pte->hash_idx, page_data);
+            kfree(page_data);
+
+            if (!phys_entry) {
+                pr_err("fault: failed add to pool\n");
+                return VM_FAULT_OOM;
+            }
+
+            pr_debug("fault: loaded page_index=%llu into pool\n", page_index);
+            goto map_page;
+        }
+
+        if (slot_hash == 0) {
+            /* Empty slot - page not found */
+            pr_err("fault: hash_idx=%llu NOT_FOUND in pages.bin\n", pte->hash_idx);
+            kfree(page_data);
+            return VM_FAULT_SIGBUS;
+        }
+
+        /* Linear probing */
+        file_index = (file_index + 1) % g_driver_state->hash_modulus;
+    }
+
+    pr_err("fault: max probes exceeded for hash_idx=%llu\n", pte->hash_idx);
+    kfree(page_data);
+    return VM_FAULT_SIGBUS;
+
+map_page:
+    /* Track this mapping for cleanup */
+    va_entry = kmalloc(sizeof(*va_entry), GFP_ATOMIC);
+    if (va_entry) {
+        va_entry->va_offset = va_offset;
+        va_entry->phys_entry = phys_entry;
+        /* Note: va_insert may fail if already exists (race), ignore */
+        va_insert(&vma_data->va_to_pa_map, va_entry);
+    }
+
+    /* get_page() for correct RSS accounting */
+    get_page(phys_entry->page);
+
+    /* Map page into user space - kernel handles COW for MAP_PRIVATE */
+    ret = vmf_insert_page(vmf, phys_entry->page);
+
+    if (ret & VM_FAULT_ERROR) {
+        pr_err("fault: vmf_insert_page failed: 0x%x\n", ret);
+        put_page(phys_entry->page);
+        snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
+    }
+
+    return ret;
+}
+
+/*
+ * mmap handler - setup VMA for on-demand loading
  *
  * Key design:
- * - vm_insert_page() for proper page mapping in kernel 6.x
- * - For COW: map with read-only prot, kernel handles write fault
- * - get_page() before insert for correct RSS/PSS accounting
- * - vm_ops tracks VMA lifecycle, releases refs on close
+ * - No preloading, pages loaded on fault
+ * - vm_ops.fault handles page loading and mapping
+ * - Kernel handles COW automatically for MAP_PRIVATE
  */
 static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
 {
@@ -145,12 +295,6 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     char template_id[TEMPLATE_ID_MAX_LEN];
     const char *dev_name;
     uint64_t size;
-    uint64_t page_count;
-    uint64_t i;
-    struct page_table_entry *pte;
-    struct phys_page_entry *phys_entry;
-    struct va_to_pa_entry *va_entry;
-    int ret;
 
     /* Extract template ID */
     dev_name = file->f_path.dentry->d_name.name;
@@ -162,9 +306,9 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     strncpy(template_id, dev_name + 9, TEMPLATE_ID_MAX_LEN - 1);
     template_id[TEMPLATE_ID_MAX_LEN - 1] = '\0';
 
-    pr_info("mmap: template='%s', vma[0x%lx-0x%lx], size=%lu, flags=0x%lx\n",
+    pr_info("mmap: template='%s', vma[0x%lx-0x%lx], size=%lu\n",
             template_id, vma->vm_start, vma->vm_end,
-            vma->vm_end - vma->vm_start, vma->vm_flags);
+            vma->vm_end - vma->vm_start);
 
     /* Find template */
     template = snapshot_template_find_ref(template_id);
@@ -181,18 +325,6 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
         return -EINVAL;
     }
 
-    /* Preload if needed */
-    if (atomic_cmpxchg(&template->preload_done, 0, 1) == 0) {
-        pr_info("mmap: preload required for template '%s'\n", template_id);
-        ret = snapshot_preload_template(template);
-        if (ret) {
-            atomic_set(&template->preload_done, 0);
-            snapshot_template_unref(template);
-            pr_err("mmap: preload FAILED ret=%d\n", ret);
-            return ret;
-        }
-    }
-
     /* Allocate VMA tracking data */
     vma_data = kzalloc(sizeof(*vma_data), GFP_KERNEL);
     if (!vma_data) {
@@ -202,99 +334,7 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     vma_data->template = template;
     vma_data->va_to_pa_map = RB_ROOT;
 
-    page_count = size / PAGE_SIZE;
-    pr_info("mmap: mapping %llu pages, vm_flags=0x%lx\n", page_count, vma->vm_flags);
-    pr_info("mmap: vm_page_prot=0x%lx, VM_SHARED=%d, VM_WRITE=%d\n",
-            pgprot_val(vma->vm_page_prot),
-            (vma->vm_flags & VM_SHARED) ? 1 : 0,
-            (vma->vm_flags & VM_WRITE) ? 1 : 0);
-
-    /* NOTE: For now, do NOT modify vm_page_prot to test basic mapping */
-    /* For MAP_PRIVATE with PROT_WRITE: modify vm_page_prot for COW */
-    /*
-    if (!(vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE)) {
-        vma->vm_page_prot = pgprot_modify(vma->vm_page_prot,
-                                          __pgprot(pgprot_val(vma->vm_page_prot) & ~_PAGE_RW));
-        pr_info("mmap: COW mode - prot modified to 0x%lx\n", pgprot_val(vma->vm_page_prot));
-    }
-    */
-
-    /* Map pages with proper ref counting for RSS/PSS */
-    for (i = 0; i < page_count; i++) {
-        pte = &template->page_table_cache[i];
-
-        phys_entry = snapshot_pool_lookup(&g_driver_state->page_pool, pte->hash_idx);
-        if (!phys_entry) {
-            pr_err("mmap: page %llu hash_idx=%llu NOT in pool\n", i, pte->hash_idx);
-            /* Cleanup already mapped pages */
-            while (!RB_EMPTY_ROOT(&vma_data->va_to_pa_map)) {
-                struct rb_node *node = rb_first(&vma_data->va_to_pa_map);
-                va_entry = rb_entry(node, struct va_to_pa_entry, rb_node);
-                rb_erase(node, &vma_data->va_to_pa_map);
-                put_page(va_entry->phys_entry->page);
-                snapshot_pool_unref(&g_driver_state->page_pool, va_entry->phys_entry);
-                kfree(va_entry);
-            }
-            kfree(vma_data);
-            snapshot_template_unref(template);
-            return -EFAULT;
-        }
-
-        /* get_page() for correct RSS accounting - kernel tracks _mapcount */
-        get_page(phys_entry->page);
-
-        /* Debug: print page info before mapping */
-        pr_info("mmap[%llu]: page=%p, pfn=%lu, flags=0x%lx, ref=%d\n",
-                i, phys_entry->page, page_to_pfn(phys_entry->page),
-                phys_entry->page->flags, page_ref_count(phys_entry->page));
-        pr_info("mmap[%llu]: vm_page_prot=0x%lx, vm_flags=0x%lx\n",
-                i, pgprot_val(vma->vm_page_prot), vma->vm_flags);
-
-        /* Use vm_insert_page for kernel 6.x compatibility */
-        ret = vm_insert_page(vma,
-                             vma->vm_start + i * PAGE_SIZE,
-                             phys_entry->page);
-
-        if (ret) {
-            pr_err("mmap: vm_insert_page failed page %llu: %d\n", i, ret);
-            /* Try remap_pfn_range as fallback */
-            ret = remap_pfn_range(vma,
-                                  vma->vm_start + i * PAGE_SIZE,
-                                  page_to_pfn(phys_entry->page),
-                                  PAGE_SIZE,
-                                  vma->vm_page_prot);
-            if (ret) {
-                pr_err("mmap: remap_pfn_range also failed page %llu: %d\n", i, ret);
-                put_page(phys_entry->page);
-                snapshot_pool_unref(&g_driver_state->page_pool, phys_entry);
-                /* Cleanup... */
-                while (!RB_EMPTY_ROOT(&vma_data->va_to_pa_map)) {
-                    struct rb_node *node = rb_first(&vma_data->va_to_pa_map);
-                    va_entry = rb_entry(node, struct va_to_pa_entry, rb_node);
-                    rb_erase(node, &vma_data->va_to_pa_map);
-                    put_page(va_entry->phys_entry->page);
-                    snapshot_pool_unref(&g_driver_state->page_pool, va_entry->phys_entry);
-                    kfree(va_entry);
-                }
-                kfree(vma_data);
-                snapshot_template_unref(template);
-                return ret;
-            }
-            pr_info("mmap[%llu]: remap_pfn_range succeeded as fallback\n", i);
-        }
-
-        /* Track mapped page for cleanup in vma_close */
-        va_entry = kmalloc(sizeof(*va_entry), GFP_KERNEL);
-        if (va_entry) {
-            va_entry->va_offset = i * PAGE_SIZE;
-            va_entry->phys_entry = phys_entry;
-            va_insert(&vma_data->va_to_pa_map, va_entry);
-        }
-
-        /* Pool ref will be released in vma_close */
-    }
-
-    /* Setup VMA ops for lifecycle management */
+    /* Setup VMA ops - pages will be loaded on fault */
     vma->vm_ops = &snapshot_vm_ops;
     vma->vm_private_data = vma_data;
     vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
@@ -302,6 +342,6 @@ static int snapshot_mmap(struct file *file, struct vm_area_struct *vma)
     /* Increment ref for VMA (vma_close will decrement) */
     atomic_inc(&template->ref_count);
 
-    pr_info("mmap: SUCCESS - %llu pages mapped, RSS will show correctly\n", page_count);
+    pr_info("mmap: SUCCESS - on-demand loading enabled\n");
     return 0;
 }

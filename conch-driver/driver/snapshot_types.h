@@ -84,13 +84,8 @@ struct snapshot_template {
     /* Cached page_table in memory (for fast fault handler lookup) */
     struct page_table_entry *page_table_cache;
 
-    /* Pre-opened file pointers for preload */
+    /* Pre-opened file pointer for on-demand loading */
     struct file *pages_file;
-
-    /* Preload completion flag */
-    atomic_t preload_done;
-
-    struct vma_snapshot_data *first_vma_data;
 
     struct miscdevice mdev;
     atomic_t ref_count;
@@ -132,8 +127,5 @@ extern void snapshot_pool_unref(struct global_page_pool *pool, struct phys_page_
 /* Page pool initialization */
 int snapshot_pool_init(struct global_page_pool *pool);
 void snapshot_pool_destroy(struct global_page_pool *pool);
-
-/* Preload function (defined in snapshot_mmap.c) */
-int snapshot_preload_template(struct snapshot_template *template);
 
 #endif /* _SNAPSHOT_TYPES_H */
