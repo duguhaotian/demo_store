@@ -61,7 +61,7 @@ struct phys_page_entry {
     struct hlist_node node;
 };
 
-/* VA to PA mapping entry (for VMA) */
+/* VA to PA mapping entry (for VMA tracking) */
 struct va_to_pa_entry {
     uint64_t va_offset;
     struct phys_page_entry *phys_entry;
@@ -71,7 +71,7 @@ struct va_to_pa_entry {
 /* VMA snapshot data */
 struct vma_snapshot_data {
     struct snapshot_template *template;
-    struct rb_root va_to_pa_map;
+    struct rb_root va_to_pa_map;  /* Tracks mapped pages for cleanup */
     bool is_first_vma;
 };
 

@@ -3,6 +3,7 @@
 #include <linux/string.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/mm.h>
 
 static int template_id_exists(const char *id)
 {
@@ -205,7 +206,19 @@ int snapshot_template_delete(struct ioctl_delete_template *args)
             kfree(template->mdev.name);
             kfree(template);
 
-            pr_info("snapshot_driver: deleted template %s\n", args->template_id);
+            /* Check if any templates remain - if not, clear pool */
+            spin_lock(&g_driver_state->template_lock);
+            if (list_empty(&g_driver_state->template_list)) {
+                spin_unlock(&g_driver_state->template_lock);
+                /* No templates left - destroy pool pages */
+                snapshot_pool_destroy(&g_driver_state->page_pool);
+                snapshot_pool_init(&g_driver_state->page_pool);
+                pr_info("snapshot_driver: pool cleared (no templates remain)\n");
+            } else {
+                spin_unlock(&g_driver_state->template_lock);
+            }
+
+            pr_info("snapshot_driver: deleted template '%s'\n", args->template_id);
             return 0;
         }
     }
@@ -225,5 +238,105 @@ int snapshot_template_status(struct ioctl_template_status *args)
     args->mmap_count = atomic_read(&template->ref_count);
     args->loaded_pages = g_driver_state->page_pool.total_pages;
 
+    return 0;
+}
+
+/* Preload all pages from pages.bin into global pool */
+int snapshot_preload_template(struct snapshot_template *template)
+{
+    struct page_table_entry *pte;
+    void *page_data;
+    struct phys_page_entry *phys_entry;
+    uint64_t i;
+    int ret;
+    int failed_pages = 0;
+    loff_t offset;
+    ssize_t read_ret;
+    uint64_t file_index;
+    uint64_t slot_hash;
+    uint32_t probe;
+    char header[8];
+
+    pr_info("preload: template='%s', page_count=%llu\n",
+            template->template_id, template->page_count);
+
+    page_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page_data)
+        return -ENOMEM;
+
+    /* Load each unique page */
+    for (i = 0; i < template->page_count; i++) {
+        pte = &template->page_table_cache[i];
+
+        pr_debug("preload[%llu]: hash_idx=%llu\n", i, pte->hash_idx);
+
+        /* Skip if already in pool (dedup) */
+        phys_entry = snapshot_pool_lookup_noref(&g_driver_state->page_pool, pte->hash_idx);
+        if (phys_entry) {
+            pr_debug("preload[%llu]: hash_idx=%llu already in pool\n", i, pte->hash_idx);
+            continue;
+        }
+
+        /* Open addressing lookup in pages.bin */
+        file_index = pte->hash_idx % g_driver_state->hash_modulus;
+
+        for (probe = 0; probe < g_driver_state->max_probe_count; probe++) {
+            offset = file_index * SLOT_SIZE;
+
+            /* Read header (8 bytes) */
+            read_ret = kernel_read(template->pages_file, header, 8, &offset);
+            if (read_ret != 8) {
+                pr_err("preload[%llu]: failed read header at offset %lld\n", i, offset);
+                failed_pages++;
+                break;
+            }
+
+            slot_hash = *((uint64_t *)header);
+
+            if (slot_hash == pte->hash_idx) {
+                /* Found - read page data */
+                offset = file_index * SLOT_SIZE + 8;
+                read_ret = kernel_read(template->pages_file, page_data, PAGE_SIZE, &offset);
+                if (read_ret != PAGE_SIZE) {
+                    pr_err("preload[%llu]: failed read page data\n", i);
+                    failed_pages++;
+                    break;
+                }
+
+                /* Add to pool */
+                phys_entry = snapshot_pool_add(&g_driver_state->page_pool, pte->hash_idx, page_data);
+                if (!phys_entry) {
+                    pr_err("preload[%llu]: failed add to pool\n", i);
+                    failed_pages++;
+                }
+                break;
+            }
+
+            if (slot_hash == 0) {
+                /* Empty slot - page not found */
+                pr_err("preload[%llu]: hash_idx=%llu NOT_FOUND (empty slot)\n", i, pte->hash_idx);
+                failed_pages++;
+                break;
+            }
+
+            /* Linear probing */
+            file_index = (file_index + 1) % g_driver_state->hash_modulus;
+        }
+
+        if (probe >= g_driver_state->max_probe_count) {
+            pr_err("preload[%llu]: max probes exceeded\n", i);
+            failed_pages++;
+        }
+    }
+
+    kfree(page_data);
+
+    if (failed_pages > 0) {
+        pr_err("preload: FAILED, %d pages failed\n", failed_pages);
+        return -EIO;
+    }
+
+    pr_info("preload: SUCCESS, loaded %llu unique pages\n",
+            g_driver_state->page_pool.total_pages);
     return 0;
 }

@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* mmap */
-    addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+    /* mmap with write for COW test */
+    addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (addr == MAP_FAILED) {
         perror("mmap");
         close(fd);
@@ -33,8 +33,21 @@ int main(int argc, char *argv[])
 
     printf("Mapped %zu bytes at %p\n", size, addr);
 
-    /* Read first page (trigger fault) */
+    /* Read first page (trigger read fault) */
     printf("First page content (first 32 bytes):\n");
+    for (int i = 0; i < 32; i++) {
+        printf("%02x ", ((unsigned char *)addr)[i]);
+        if ((i + 1) % 16 == 0)
+            printf("\n");
+    }
+
+    /* Test write operation (trigger write fault - COW) */
+    printf("\nAttempting write operation (COW)...\n");
+    ((unsigned char *)addr)[1] = 'a';
+    printf("Write succeeded, modified byte: 0x61 ('a')\n");
+
+    /* Read back to verify */
+    printf("After write, first 32 bytes:\n");
     for (int i = 0; i < 32; i++) {
         printf("%02x ", ((unsigned char *)addr)[i]);
         if ((i + 1) % 16 == 0)
