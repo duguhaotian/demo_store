@@ -20,6 +20,9 @@
 
 #define REGION_SIZE (64 * 1024)
 #define PREVIEW_LEN 48
+#define WRITE_PAGE_COUNT 3
+
+static const size_t k_write_pages[WRITE_PAGE_COUNT] = {6, 8, 11};
 
 struct page_meta {
     off_t file_offset;
@@ -329,6 +332,39 @@ static void log_mapping_page(const char *who, size_t page_idx, const char *page)
     log_line("[%s pid=%d] page%zu content=\"%s\"\n", who, getpid(), page_idx, preview);
 }
 
+static void log_selected_pages(const char *who, struct demo_ctx *ctx)
+{
+    for (size_t i = 0; i < WRITE_PAGE_COUNT; ++i) {
+        size_t page_idx = k_write_pages[i];
+        log_mapping_page(who, page_idx, ctx->user_base + page_idx * ctx->page_size);
+    }
+}
+
+static void prefault_selected_pages(const char *who, struct demo_ctx *ctx)
+{
+    for (size_t i = 0; i < WRITE_PAGE_COUNT; ++i) {
+        size_t page_idx = k_write_pages[i];
+        volatile char c = ctx->user_base[page_idx * ctx->page_size];
+        (void)c;
+        log_mapping_page(who, page_idx, ctx->user_base + page_idx * ctx->page_size);
+    }
+}
+
+static void write_selected_pages(struct demo_ctx *ctx)
+{
+    for (size_t i = 0; i < WRITE_PAGE_COUNT; ++i) {
+        size_t page_idx = k_write_pages[i];
+        char value = (char)('X' + (int)i);
+        char *page = ctx->user_base + page_idx * ctx->page_size;
+
+        log_line("[child pid=%d] triggering write fault on page%zu[0] = '%c'\n",
+                 getpid(),
+                 page_idx,
+                 value);
+        page[0] = value;
+    }
+}
+
 static void handle_missing_fault(struct demo_ctx *ctx, unsigned long fault_addr)
 {
     size_t page_idx = page_index_from_addr(ctx, fault_addr);
@@ -581,6 +617,58 @@ static void dump_region_layout_for_pid(const char *who,
              (double)private_bytes * 100.0 / (double)region_len);
 }
 
+static void dump_region_smaps_for_pid(const char *who,
+                                      pid_t pid,
+                                      unsigned long region_start,
+                                      size_t region_len)
+{
+    char path[64];
+    char *line = NULL;
+    size_t cap = 0;
+    FILE *fp;
+    unsigned long region_end = region_start + region_len;
+    int print_block = 0;
+    int matched = 0;
+
+    snprintf(path, sizeof(path), "/proc/%d/smaps", pid);
+    fp = fopen(path, "r");
+    if (fp == NULL) {
+        die_errno("fopen smaps");
+    }
+
+    log_line("[%s pid=%d] demo region smaps blocks:\n", who, pid);
+
+    while (getline(&line, &cap, fp) >= 0) {
+        unsigned long vma_start;
+        unsigned long vma_end;
+        char perms[5] = {0};
+
+        if (sscanf(line, "%lx-%lx %4s", &vma_start, &vma_end, perms) == 3) {
+            print_block = !(vma_end <= region_start || vma_start >= region_end);
+            if (print_block) {
+                matched = 1;
+                log_line("[%s pid=%d]   %s", who, pid, line);
+            }
+            continue;
+        }
+
+        if (print_block) {
+            log_line("[%s pid=%d]   %s", who, pid, line);
+        }
+    }
+
+    free(line);
+    fclose(fp);
+
+    if (!matched) {
+        log_line("[%s pid=%d]   <no overlapping smaps block found for [0x%lx-0x%lx)>\n",
+                 who,
+                 pid,
+                 region_start,
+                 region_end);
+    }
+}
+
 static void child_process(struct demo_ctx *ctx, int notify_fd, int control_fd)
 {
     char token;
@@ -607,10 +695,11 @@ static void child_process(struct demo_ctx *ctx, int notify_fd, int control_fd)
         fatalf("unexpected child control token before write: %c", token);
     }
 
-    log_mapping_page("child-before-write", 0, ctx->user_base);
-    log_line("[child pid=%d] triggering write fault on page0[0] = 'X'\n", getpid());
-    ctx->user_base[0] = 'X';
-    log_mapping_page("child-after-write", 0, ctx->user_base);
+    log_line("[child pid=%d] prefaulting sparse write pages\n", getpid());
+    prefault_selected_pages("child-prefaulted", ctx);
+    log_selected_pages("child-before-write", ctx);
+    write_selected_pages(ctx);
+    log_selected_pages("child-after-write", ctx);
     token = 'D';
     write_all(notify_fd, &token, 1);
 
@@ -638,6 +727,11 @@ int main(void)
              ctx.page_count,
              ctx.page_size,
              ctx.user_base);
+    log_line("[parent pid=%d] sparse write pages in middle 24KB: {%zu, %zu, %zu}\n",
+             getpid(),
+             k_write_pages[0],
+             k_write_pages[1],
+             k_write_pages[2]);
 
     if (pipe(notify_pipe) < 0) {
         die_errno("pipe notify");
@@ -655,7 +749,6 @@ int main(void)
         close(notify_pipe[0]);
         close(control_pipe[1]);
         child_process(&ctx, notify_pipe[1], control_pipe[0]);
-        sleep(90);
         close(notify_pipe[1]);
         close(control_pipe[0]);
         cleanup_demo(&ctx);
@@ -680,7 +773,6 @@ int main(void)
     }
 
     log_mapping_page("parent-after-read", 0, ctx.user_base);
-    log_mapping_page("parent-before-write", 0, ctx.user_base);
     token = 'W';
     write_all(control_pipe[1], &token, 1);
 
@@ -689,9 +781,11 @@ int main(void)
         fatalf("unexpected token after child write: %c", token);
     }
 
-    log_mapping_page("parent-after-write", 0, ctx.user_base);
+    log_selected_pages("parent-after-write", &ctx);
     dump_region_layout_for_pid("parent", getpid(), (unsigned long)ctx.user_base, ctx.region_size);
     dump_region_layout_for_pid("child", child, (unsigned long)ctx.user_base, ctx.region_size);
+    dump_region_smaps_for_pid("parent", getpid(), (unsigned long)ctx.user_base, ctx.region_size);
+    dump_region_smaps_for_pid("child", child, (unsigned long)ctx.user_base, ctx.region_size);
 
     token = 'Q';
     write_all(control_pipe[1], &token, 1);
