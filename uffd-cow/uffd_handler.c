@@ -111,34 +111,34 @@ static void *uffd_handler_thread(void *arg) {
 
         // MISSING fault (page not loaded)
         if (!(flags & UFFD_PAGEFAULT_FLAG_WP)) {
-            if (cfg->shared_pages[page_idx].state == PAGE_UNLOADED) {
-                printf("[UFFD Handler] Loading page %d from file\n", page_idx);
+            printf("[UFFD Handler] MISSING fault on page %d\n", page_idx);
 
-                char buffer[PAGE_SIZE];
-                if (read_page_from_file(cfg->test_file_path,
-                                        cfg->shared_pages[page_idx].file_offset,
-                                        buffer, PAGE_SIZE) < 0) {
-                    fprintf(stderr, "Failed to read page from file\n");
-                    continue;
-                }
-
-                struct uffdio_copy copy = {
-                    .dst = page_addr,
-                    .src = (uint64_t)buffer,
-                    .len = PAGE_SIZE,
-                    .mode = 0  // Don't keep WP, allow writes (for testing)
-                };
-
-                if (ioctl(cfg->uffd, UFFDIO_COPY, &copy) < 0) {
-                    perror("UFFDIO_COPY");
-                    continue;
-                }
-
-                cfg->shared_pages[page_idx].state = PAGE_LOADED;
-                printf("[UFFD Handler] Page %d loaded\n", page_idx);
-            } else {
-                printf("[UFFD Handler] Page %d already loaded\n", page_idx);
+            // Always load from file and copy (to wake the fault thread)
+            char buffer[PAGE_SIZE];
+            if (read_page_from_file(cfg->test_file_path,
+                                    page_idx * PAGE_SIZE,
+                                    buffer, PAGE_SIZE) < 0) {
+                fprintf(stderr, "Failed to read page from file\n");
+                continue;
             }
+
+            struct uffdio_copy copy = {
+                .dst = page_addr,
+                .src = (uint64_t)buffer,
+                .len = PAGE_SIZE,
+                .mode = 0  // Wake thread after copy
+            };
+
+            if (ioctl(cfg->uffd, UFFDIO_COPY, &copy) < 0) {
+                perror("UFFDIO_COPY");
+                continue;
+            }
+
+            // Update shared state (may already be LOADED)
+            if (cfg->shared_pages[page_idx].state == PAGE_UNLOADED) {
+                cfg->shared_pages[page_idx].state = PAGE_LOADED;
+            }
+            printf("[UFFD Handler] Page %d loaded\n", page_idx);
         }
 
         // WP fault (write-protect triggered)
