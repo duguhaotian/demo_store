@@ -2,10 +2,26 @@
 # UFFD + COW Demo 自动测试脚本
 # 使用方法: sudo ./test.sh
 
-set -e
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UFFD_COW="$SCRIPT_DIR/uffd-cow"
+FIFO_PATH=""
+CREATOR_PID=""
+
+# 清理函数
+cleanup() {
+    if [ -n "$FIFO_PATH" ]; then
+        exec 3>&- 2>/dev/null || true
+        rm -f "$FIFO_PATH"
+    fi
+    if [ -n "$CREATOR_PID" ]; then
+        kill $CREATOR_PID 2>/dev/null || true
+        wait $CREATOR_PID 2>/dev/null || true
+    fi
+    rm -f /tmp/uffd-cow-test.bin
+    rm -f "$WORKER1_OUTPUT" "$WORKER2_OUTPUT" 2>/dev/null || true
+}
+
+trap cleanup EXIT
 
 echo "=== UFFD + COW Demo Test Script ==="
 
@@ -39,11 +55,19 @@ fi
 # 清理旧测试文件
 rm -f /tmp/uffd-cow-test.bin
 
-# 启动 creator（后台运行）
+# 启动 creator（后台运行，用 fifo 保持 stdin）
 echo ""
 echo "=== Starting Creator ==="
-$UFFD_COW --create &
+
+# 创建临时 fifo 作为 stdin
+FIFO_PATH=$(mktemp -u)
+mkfifo "$FIFO_PATH"
+
+$UFFD_COW --create < "$FIFO_PATH" &
 CREATOR_PID=$!
+
+# 打开 fifo 保持 creator 运行（稍后写入换行退出）
+exec 3>"$FIFO_PATH"
 
 # 等待 creator 输出路径信息
 sleep 1
@@ -54,15 +78,21 @@ if [ ! -d "/proc/$CREATOR_PID/fd" ]; then
     exit 1
 fi
 
-# 查找 meta 和 data fd
-META_FD=$(ls -la /proc/$CREATOR_PID/fd | grep "uffd-cow-meta" | awk '{print $NF}' | head -1)
-DATA_FD=$(ls -la /proc/$CREATOR_PID/fd | grep "uffd-cow-data" | awk '{print $NF}' | head -1)
+# 查找 meta 和 data fd（memfd 命名格式: /memfd:uffd-cow-xxx）
+for fd in $(ls /proc/$CREATOR_PID/fd); do
+    target=$(readlink /proc/$CREATOR_PID/fd/$fd 2>/dev/null || echo "")
+    if [[ "$target" == *"uffd-cow-meta"* ]]; then
+        META_FD=$fd
+    elif [[ "$target" == *"uffd-cow-data"* ]]; then
+        DATA_FD=$fd
+    fi
+done
 
+# 备选：如果没有找到命名 memfd，使用数值 fd（按顺序取 3 和 4）
 if [ -z "$META_FD" ] || [ -z "$DATA_FD" ]; then
-    # 如果找不到命名 memfd，使用数值 fd
-    FD_LIST=$(ls /proc/$CREATOR_PID/fd | sort -n)
-    META_FD=$(echo "$FD_LIST" | head -3 | tail -1)
-    DATA_FD=$(echo "$FD_LIST" | head -4 | tail -1)
+    FD_LIST=$(ls /proc/$CREATOR_PID/fd | grep -E '^3$|^4$|^5$|^6$' | sort -n)
+    META_FD=3
+    DATA_FD=4
 fi
 
 META_PATH="/proc/$CREATOR_PID/fd/$META_FD"
@@ -86,9 +116,9 @@ fi
 # 启动 Worker 1
 echo ""
 echo "=== Starting Worker 1 ==="
-$UFFD_COW --join --meta "$META_PATH" --data "$DATA_PATH" 2>&1 | sed 's/^/[Worker1] /'
 WORKER1_OUTPUT=$(mktemp)
 $UFFD_COW --join --meta "$META_PATH" --data "$DATA_PATH" > "$WORKER1_OUTPUT" 2>&1
+cat "$WORKER1_OUTPUT" | sed 's/^/[Worker1] /'
 
 # 检查 Worker1 输出是否包含 COW 标记
 if grep -q "'XXXX'..." "$WORKER1_OUTPUT"; then
@@ -114,7 +144,13 @@ fi
 # 清理
 echo ""
 echo "=== Cleanup ==="
-kill $CREATOR_PID 2>/dev/null || true
+# 写入换行让 creator 退出
+if [ -n "$FIFO_PATH" ] && [ -p "$FIFO_PATH" ]; then
+    echo "" >&3 2>/dev/null || true
+fi
+exec 3>&- 2>/dev/null || true
+rm -f "$FIFO_PATH"
+wait $CREATOR_PID 2>/dev/null || true
 rm -f "$WORKER1_OUTPUT" "$WORKER2_OUTPUT"
 rm -f /tmp/uffd-cow-test.bin
 
