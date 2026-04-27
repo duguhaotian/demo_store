@@ -203,37 +203,58 @@ static void demo_operations(struct config *cfg) {
 
 static int run_worker(struct config *cfg) {
     printf("[Worker] Starting...\n");
+    fflush(stdout);
     printf("[Worker] meta_path: %s\n", cfg->meta_path);
+    fflush(stdout);
     printf("[Worker] data_path: %s\n", cfg->data_path);
+    fflush(stdout);
 
     // Open existing memfds
+    printf("[Worker] Step 1: Opening memfds...\n");
+    fflush(stdout);
     if (open_memfds(cfg) < 0) {
         fprintf(stderr, "Failed to open memfds\n");
         return -1;
     }
+    printf("[Worker] Step 1 done: meta_fd=%d, data_fd=%d\n", cfg->meta_fd, cfg->data_fd);
+    fflush(stdout);
 
     // Mmap regions
+    printf("[Worker] Step 2: Mapping regions...\n");
+    fflush(stdout);
     if (mmap_regions(cfg) < 0) {
         fprintf(stderr, "Failed to mmap regions\n");
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 2 done: meta_base=%p, data_base=%p\n", cfg->meta_base, cfg->data_base);
+    fflush(stdout);
 
     // Initialize local pages (shared pages already initialized by creator)
+    printf("[Worker] Step 3: Initializing local pages...\n");
+    fflush(stdout);
     if (init_local_pages(&cfg->local_pages, cfg->page_count) < 0) {
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 3 done\n");
+    fflush(stdout);
 
     // Initialize UFFD
+    printf("[Worker] Step 4: Initializing UFFD...\n");
+    fflush(stdout);
     if (init_uffd(cfg) < 0) {
         fprintf(stderr, "Failed to init UFFD\n");
         free_local_pages(cfg->local_pages);
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 4 done: uffd=%d\n", cfg->uffd);
+    fflush(stdout);
 
     // Register UFFD
+    printf("[Worker] Step 5: Registering UFFD...\n");
+    fflush(stdout);
     if (register_uffd(cfg) < 0) {
         fprintf(stderr, "Failed to register UFFD\n");
         cleanup_uffd(cfg);
@@ -241,8 +262,12 @@ static int run_worker(struct config *cfg) {
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 5 done\n");
+    fflush(stdout);
 
     // Enable write protection
+    printf("[Worker] Step 6: Enabling write protection...\n");
+    fflush(stdout);
     if (enable_writeprotect(cfg) < 0) {
         fprintf(stderr, "Failed to enable write protection\n");
         cleanup_uffd(cfg);
@@ -250,8 +275,12 @@ static int run_worker(struct config *cfg) {
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 6 done\n");
+    fflush(stdout);
 
     // Start handler thread
+    printf("[Worker] Step 7: Starting UFFD thread...\n");
+    fflush(stdout);
     pthread_t thread;
     if (start_uffd_thread(cfg, &thread) < 0) {
         fprintf(stderr, "Failed to start UFFD thread\n");
@@ -260,8 +289,12 @@ static int run_worker(struct config *cfg) {
         cleanup_shmem(cfg);
         return -1;
     }
+    printf("[Worker] Step 7 done\n");
+    fflush(stdout);
 
     // Run demo operations
+    printf("[Worker] Step 8: Running demo...\n");
+    fflush(stdout);
     demo_operations(cfg);
 
     // Cleanup
@@ -271,6 +304,7 @@ static int run_worker(struct config *cfg) {
     cleanup_shmem(cfg);
 
     printf("[Worker] Exiting\n");
+    fflush(stdout);
     return 0;
 }
 
