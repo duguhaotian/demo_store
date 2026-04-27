@@ -162,33 +162,43 @@ static int run_creator(struct config *cfg) {
 
 static void demo_operations(struct config *cfg) {
     printf("[Worker] Starting demo operations...\n");
+    fflush(stdout);
 
     // Read page 0 (triggers MISSING)
     char *page0 = (char *)cfg->data_base;
-    printf("[Worker] Reading page 0...\n");
+    printf("[Worker] About to read page 0...\n");
+    fflush(stdout);
     char first_char = page0[0];
     printf("[Worker] Read page 0: '%c%c%c%c...' (size=%d)\n",
            first_char, first_char, first_char, first_char, PAGE_SIZE);
+    fflush(stdout);
 
     // Read page 1 (triggers MISSING)
     char *page1 = (char *)cfg->data_base + PAGE_SIZE;
-    printf("[Worker] Reading page 1...\n");
+    printf("[Worker] About to read page 1...\n");
+    fflush(stdout);
     char second_char = page1[0];
     printf("[Worker] Read page 1: '%c%c%c%c...' (size=%d)\n",
            second_char, second_char, second_char, second_char, PAGE_SIZE);
+    fflush(stdout);
 
     // Write to page 0 (triggers WP -> COW)
-    printf("[Worker] Writing to page 0 (changing to 'XXXX')...\n");
+    printf("[Worker] About to write page 0...\n");
+    fflush(stdout);
     memset(page0, 'X', PAGE_SIZE);
     printf("[Worker] Write page 0 complete\n");
+    fflush(stdout);
 
     // Read page 0 again (should see modified value in private page)
-    printf("[Worker] Reading page 0 after write...\n");
+    printf("[Worker] About to read page 0 after write...\n");
+    fflush(stdout);
     first_char = page0[0];
     printf("[Worker] Read page 0 after write: '%c%c%c%c...' (private COW page)\n",
            first_char, first_char, first_char, first_char);
+    fflush(stdout);
 
     printf("[Worker] Demo complete\n");
+    fflush(stdout);
 }
 
 static int run_worker(struct config *cfg) {

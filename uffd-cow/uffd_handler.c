@@ -108,6 +108,7 @@ static void *uffd_handler_thread(void *arg) {
 
         printf("[UFFD Handler] Fault at page %d, addr=0x%lx, flags=0x%lx\n",
                page_idx, fault_addr, flags);
+        fflush(stdout);
 
         // MISSING fault (page not loaded)
         if (!(flags & UFFD_PAGEFAULT_FLAG_WP)) {
@@ -139,6 +140,7 @@ static void *uffd_handler_thread(void *arg) {
                 cfg->shared_pages[page_idx].state = PAGE_LOADED;
             }
             printf("[UFFD Handler] Page %d loaded\n", page_idx);
+            fflush(stdout);
         }
 
         // WP fault (write-protect triggered)
