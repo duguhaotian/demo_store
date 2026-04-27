@@ -126,7 +126,7 @@ static void *uffd_handler_thread(void *arg) {
                     .dst = page_addr,
                     .src = (uint64_t)buffer,
                     .len = PAGE_SIZE,
-                    .mode = UFFDIO_COPY_MODE_WP  // Keep write-protect after copy
+                    .mode = 0  // Don't keep WP, allow writes (for testing)
                 };
 
                 if (ioctl(cfg->uffd, UFFDIO_COPY, &copy) < 0) {
