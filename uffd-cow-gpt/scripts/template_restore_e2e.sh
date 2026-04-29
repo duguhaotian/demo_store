@@ -8,6 +8,8 @@ MEMORY_SIZE="${MEMORY_SIZE:-512M}"
 CMDLINE="${CMDLINE:-console=hvc0 root=/dev/vda1 rw}"
 SECCOMP="${SECCOMP:-false}"
 SKIP_UFFD_PREFLIGHT="${SKIP_UFFD_PREFLIGHT:-0}"
+CH_VERBOSE="${CH_VERBOSE:--v}"
+WAIT_FOR_CONFIRM="${WAIT_FOR_CONFIRM:-1}"
 
 CH_BIN="${CH_BIN:-$CH_DIR/target/debug/cloud-hypervisor}"
 CH_REMOTE="${CH_REMOTE:-$CH_DIR/target/debug/ch-remote}"
@@ -27,6 +29,8 @@ Optional environment:
   CMDLINE="$CMDLINE"
   SECCOMP=$SECCOMP
   SKIP_UFFD_PREFLIGHT=$SKIP_UFFD_PREFLIGHT
+  CH_VERBOSE=$CH_VERBOSE
+  WAIT_FOR_CONFIRM=$WAIT_FOR_CONFIRM
   CH_BIN=$CH_BIN
   CH_REMOTE=$CH_REMOTE
   TEMPLATE_BIN=$TEMPLATE_BIN
@@ -134,6 +138,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+wait_for_user_confirmation() {
+    [[ "$WAIT_FOR_CONFIRM" == "1" ]] || return 0
+    [[ -t 0 ]] || return 0
+
+    echo
+    echo "template restore e2e finished; press Enter to stop background processes and exit."
+    read -r _
+}
+
 require_file KERNEL "$KERNEL"
 require_file DISK "$DISK"
 check_uffd_permissions
@@ -150,6 +163,11 @@ else
     echo "[2/7] using existing cloud-hypervisor binaries"
 fi
 
+CH_LOG_ARGS=()
+if [[ -n "$CH_VERBOSE" ]]; then
+    CH_LOG_ARGS+=("$CH_VERBOSE")
+fi
+
 SRC_API="$WORKDIR/source.sock"
 RESTORE_API="$WORKDIR/restore.sock"
 SNAPSHOT_DIR="$WORKDIR/snapshot"
@@ -164,6 +182,7 @@ mkdir -p "$SNAPSHOT_DIR"
 
 echo "[3/7] starting source sandbox"
 "$CH_BIN" \
+    "${CH_LOG_ARGS[@]}" \
     --api-socket "$SRC_API" \
     --seccomp "$SECCOMP" \
     --kernel "$KERNEL" \
@@ -198,6 +217,7 @@ test -S "$TEMPLATE_SOCKET"
 
 echo "[7/7] restoring sandbox through template service"
 "$CH_BIN" \
+    "${CH_LOG_ARGS[@]}" \
     --api-socket "$RESTORE_API" \
     --seccomp "$SECCOMP" \
     --restore "source_url=file://$SNAPSHOT_DIR,memory_restore_mode=ondemand,template_socket=$TEMPLATE_SOCKET,resume=true" \
@@ -208,8 +228,11 @@ wait_for_api "$RESTORE_API" "$RESTORE_LOG" "$RESTORE_PID"
 if ! grep -q "template UFFD restore: using template service socket" "$RESTORE_LOG"; then
     echo "restore completed, but restore log does not show template service usage" >&2
     echo "restore log: $RESTORE_LOG" >&2
+    echo "last 120 lines from $RESTORE_LOG:" >&2
+    tail -n 120 "$RESTORE_LOG" >&2
     exit 1
 fi
 
 echo "template restore e2e passed"
 echo "workdir: $WORKDIR"
+wait_for_user_confirmation

@@ -20,7 +20,9 @@ help:
 		'  KERNEL=/path/to/vmlinux  required by make e2e' \
 		'  DISK=/path/to/rootfs     required by make e2e' \
 		'  SECCOMP=false            seccomp mode for e2e cloud-hypervisor processes' \
-		'  SKIP_UFFD_PREFLIGHT=0    skip e2e userfaultfd permission preflight when set to 1'
+		'  SKIP_UFFD_PREFLIGHT=0    skip e2e userfaultfd permission preflight when set to 1' \
+		'  CH_VERBOSE=-v            cloud-hypervisor verbosity for e2e logs' \
+		'  WAIT_FOR_CONFIRM=1       wait for Enter before e2e cleanup when interactive'
 
 .PHONY: fmt
 fmt:
@@ -71,4 +73,4 @@ e2e: build
 		echo '  KERNEL=/path/to/vmlinux DISK=/path/to/rootfs.img make e2e' >&2; \
 		exit 2; \
 	fi
-	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" SKIP_UFFD_PREFLIGHT="$${SKIP_UFFD_PREFLIGHT:-0}" ./scripts/template_restore_e2e.sh
+	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" SKIP_UFFD_PREFLIGHT="$${SKIP_UFFD_PREFLIGHT:-0}" CH_VERBOSE="$${CH_VERBOSE:--v}" WAIT_FOR_CONFIRM="$${WAIT_FOR_CONFIRM:-1}" ./scripts/template_restore_e2e.sh
