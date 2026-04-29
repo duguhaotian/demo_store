@@ -367,6 +367,9 @@ pub enum ValidationError {
     /// Prefault cannot be combined with on-demand restore
     #[error("'prefault' cannot be combined with 'memory_restore_mode=ondemand'")]
     InvalidRestorePrefaultWithOnDemand,
+    /// Template socket can only be used with on-demand restore
+    #[error("'template_socket' requires 'memory_restore_mode=ondemand'")]
+    InvalidRestoreTemplateSocketWithoutOnDemand,
     /// Path provided in landlock-rules doesn't exist
     #[error("Path {0:?} provided in landlock-rules does not exist")]
     LandlockPathDoesNotExist(PathBuf),
@@ -2545,6 +2548,8 @@ pub struct RestoreConfig {
     #[serde(default)]
     pub memory_restore_mode: MemoryRestoreMode,
     #[serde(default)]
+    pub template_socket: Option<PathBuf>,
+    #[serde(default)]
     pub net_fds: Option<Vec<RestoredNetConfig>>,
     #[serde(default)]
     pub resume: bool,
@@ -2553,10 +2558,11 @@ pub struct RestoreConfig {
 impl RestoreConfig {
     pub const SYNTAX: &'static str = "Restore from a VM snapshot. \
         \nRestore parameters \"source_url=<source_url>,prefault=on|off,memory_restore_mode=copy|ondemand,\
-        net_fds=<list_of_net_ids_with_their_associated_fds>,resume=true|false\" \
+        template_socket=<path>,net_fds=<list_of_net_ids_with_their_associated_fds>,resume=true|false\" \
         \n`source_url` should be a valid URL (e.g file:///foo/bar or tcp://192.168.1.10/foo) \
         \n`prefault` controls eager prefaulting for the copy-based restore path (disabled by default) \
         \n`memory_restore_mode=copy` preserves the existing eager read-copy restore behavior, while `memory_restore_mode=ondemand` enables lazy demand paging and fails restore if userfaultfd support is unavailable \
+        \n`template_socket` makes on-demand restore read memory pages from an external template service Unix socket \
         \n`net_fds` is a list of net ids with new file descriptors. \
         Only net devices backed by FDs directly are needed as input.\
         \n `resume` controls whether the VM will be directly resumed after restore ";
@@ -2567,6 +2573,7 @@ impl RestoreConfig {
             .add("source_url")
             .add("prefault")
             .add("memory_restore_mode")
+            .add("template_socket")
             .add("net_fds")
             .add("resume");
         parser.parse(restore).map_err(Error::ParseRestore)?;
@@ -2584,6 +2591,7 @@ impl RestoreConfig {
             .convert::<MemoryRestoreMode>("memory_restore_mode")
             .map_err(Error::ParseRestore)?
             .unwrap_or_default();
+        let template_socket = parser.get("template_socket").map(PathBuf::from);
         let net_fds = parser
             .convert::<Tuple<String, Vec<u64>>>("net_fds")
             .map_err(Error::ParseRestore)?
@@ -2606,6 +2614,7 @@ impl RestoreConfig {
             source_url,
             prefault,
             memory_restore_mode,
+            template_socket,
             net_fds,
             resume,
         })
@@ -2617,6 +2626,10 @@ impl RestoreConfig {
     pub fn validate(&self, vm_config: &VmConfig) -> ValidationResult<()> {
         if self.memory_restore_mode == MemoryRestoreMode::OnDemand && self.prefault {
             return Err(ValidationError::InvalidRestorePrefaultWithOnDemand);
+        }
+        if self.template_socket.is_some() && self.memory_restore_mode != MemoryRestoreMode::OnDemand
+        {
+            return Err(ValidationError::InvalidRestoreTemplateSocketWithoutOnDemand);
         }
 
         let mut restored_net_with_fds = HashMap::new();
@@ -4623,6 +4636,7 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
                 source_url: PathBuf::from("/path/to/snapshot"),
                 prefault: false,
                 memory_restore_mode: MemoryRestoreMode::Copy,
+                template_socket: None,
                 net_fds: None,
                 resume: false,
             }
@@ -4635,6 +4649,7 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
                 source_url: PathBuf::from("/path/to/snapshot"),
                 prefault: false,
                 memory_restore_mode: MemoryRestoreMode::Copy,
+                template_socket: None,
                 net_fds: Some(vec![
                     RestoredNetConfig {
                         id: "net0".to_string(),
@@ -4656,6 +4671,20 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
                 source_url: PathBuf::from("/path/to/snapshot"),
                 prefault: false,
                 memory_restore_mode: MemoryRestoreMode::OnDemand,
+                template_socket: None,
+                net_fds: None,
+                resume: false,
+            }
+        );
+        assert_eq!(
+            RestoreConfig::parse(
+                "source_url=/path/to/snapshot,memory_restore_mode=ondemand,template_socket=/tmp/template.sock"
+            )?,
+            RestoreConfig {
+                source_url: PathBuf::from("/path/to/snapshot"),
+                prefault: false,
+                memory_restore_mode: MemoryRestoreMode::OnDemand,
+                template_socket: Some(PathBuf::from("/tmp/template.sock")),
                 net_fds: None,
                 resume: false,
             }
@@ -4666,6 +4695,7 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
                 source_url: PathBuf::from("/path/to/snapshot"),
                 prefault: false,
                 memory_restore_mode: MemoryRestoreMode::Copy,
+                template_socket: None,
                 net_fds: None,
                 resume: true,
             }
@@ -4766,6 +4796,7 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
             source_url: PathBuf::from("/path/to/snapshot"),
             prefault: false,
             memory_restore_mode: MemoryRestoreMode::Copy,
+            template_socket: None,
             net_fds: Some(vec![
                 RestoredNetConfig {
                     id: "net0".to_string(),
@@ -4842,6 +4873,7 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
             source_url: PathBuf::from("/path/to/snapshot"),
             prefault: false,
             memory_restore_mode: MemoryRestoreMode::Copy,
+            template_socket: None,
             net_fds: None,
             resume: false,
         };
@@ -4859,12 +4891,26 @@ id=\"{id}\",pci_segment={pci_segment},queue_sizes={queue_sizes}"
             source_url: PathBuf::from("/path/to/snapshot"),
             prefault: true,
             memory_restore_mode: MemoryRestoreMode::OnDemand,
+            template_socket: None,
             net_fds: None,
             resume: false,
         };
         assert_eq!(
             invalid_restore_mode.validate(&snapshot_vm_config),
             Err(ValidationError::InvalidRestorePrefaultWithOnDemand)
+        );
+
+        let invalid_template_socket = RestoreConfig {
+            source_url: PathBuf::from("/path/to/snapshot"),
+            prefault: false,
+            memory_restore_mode: MemoryRestoreMode::Copy,
+            template_socket: Some(PathBuf::from("/tmp/template.sock")),
+            net_fds: None,
+            resume: false,
+        };
+        assert_eq!(
+            invalid_template_socket.validate(&snapshot_vm_config),
+            Err(ValidationError::InvalidRestoreTemplateSocketWithoutOnDemand)
         );
     }
 

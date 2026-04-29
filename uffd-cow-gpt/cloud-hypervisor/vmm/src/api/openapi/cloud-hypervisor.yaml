@@ -1388,6 +1388,8 @@ components:
           type: boolean
         memory_restore_mode:
           $ref: "#/components/schemas/MemoryRestoreMode"
+        template_socket:
+          type: string
         resume:
           type: boolean
 

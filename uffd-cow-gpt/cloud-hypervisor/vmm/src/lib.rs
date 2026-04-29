@@ -8,7 +8,6 @@ use std::fs::File;
 use std::io::{Read, Write, stdout};
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::panic::AssertUnwindSafe;
-#[cfg(feature = "guest_debug")]
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, RecvError, SendError, Sender};
 use std::sync::{Arc, Mutex};
@@ -1577,6 +1576,7 @@ impl Vmm {
         &mut self,
         source_url: &str,
         vm_config: Arc<Mutex<VmConfig>>,
+        template_socket: Option<&PathBuf>,
         prefault: bool,
         memory_restore_mode: MemoryRestoreMode,
     ) -> std::result::Result<(), VmError> {
@@ -1625,6 +1625,7 @@ impl Vmm {
             Arc::clone(&self.original_termios_opt),
             Some(&snapshot),
             Some(source_url),
+            template_socket,
             Some(prefault),
             Some(memory_restore_mode),
         )?;
@@ -1849,6 +1850,7 @@ impl RequestHandler for Vmm {
                         None,
                         None,
                         None,
+                        None,
                     )?;
 
                     self.vm = Some(vm);
@@ -1938,6 +1940,7 @@ impl RequestHandler for Vmm {
         self.vm_restore(
             source_url,
             vm_config,
+            restore_cfg.template_socket.as_ref(),
             restore_cfg.prefault,
             restore_cfg.memory_restore_mode,
         )
@@ -2040,6 +2043,7 @@ impl RequestHandler for Vmm {
             self.console_info.clone(),
             self.console_resize_pipe.clone(),
             Arc::clone(&self.original_termios_opt),
+            None,
             None,
             None,
             None,

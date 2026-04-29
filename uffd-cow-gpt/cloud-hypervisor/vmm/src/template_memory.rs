@@ -13,8 +13,10 @@
 //! `MemoryManager`.
 
 use std::fs::File;
-use std::io::{self, Read as _, Seek, SeekFrom};
+use std::io::{self, Read as _, Seek, SeekFrom, Write as _};
 use std::os::fd::{AsFd, AsRawFd, FromRawFd, OwnedFd};
+use std::os::unix::net::UnixStream;
+use std::path::Path;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::mpsc::SyncSender;
 use std::thread;
@@ -89,13 +91,29 @@ impl TemplatePageMeta {
 }
 
 pub(crate) struct TemplateRestoreBackend {
-    snapshot_file: File,
+    source: TemplatePageSource,
     ranges: Vec<TemplateRange>,
     pages: Vec<TemplatePageMeta>,
 }
 
+enum TemplatePageSource {
+    File(File),
+    Service(TemplateServiceClient),
+}
+
 impl TemplateRestoreBackend {
-    pub(crate) fn new(snapshot_file: File, mut ranges: Vec<TemplateRange>) -> Self {
+    pub(crate) fn from_file(snapshot_file: File, ranges: Vec<TemplateRange>) -> Self {
+        Self::new(TemplatePageSource::File(snapshot_file), ranges)
+    }
+
+    pub(crate) fn from_service(socket_path: &Path, ranges: Vec<TemplateRange>) -> io::Result<Self> {
+        Ok(Self::new(
+            TemplatePageSource::Service(TemplateServiceClient::connect(socket_path)?),
+            ranges,
+        ))
+    }
+
+    fn new(source: TemplatePageSource, mut ranges: Vec<TemplateRange>) -> Self {
         let mut first_page_index = 0;
         let mut pages = Vec::new();
 
@@ -110,7 +128,7 @@ impl TemplateRestoreBackend {
         }
 
         Self {
-            snapshot_file,
+            source,
             ranges,
             pages,
         }
@@ -138,10 +156,59 @@ impl TemplateRestoreBackend {
         let meta = &self.pages[fault.page_index as usize];
         debug_assert_eq!(meta.backend_offset, fault.backend_offset);
 
-        self.snapshot_file
-            .seek(SeekFrom::Start(meta.backend_offset))?;
-        self.snapshot_file
-            .read_exact(&mut page_buf[..fault.page_size as usize])
+        match &mut self.source {
+            TemplatePageSource::File(snapshot_file) => {
+                snapshot_file.seek(SeekFrom::Start(meta.backend_offset))?;
+                snapshot_file.read_exact(&mut page_buf[..fault.page_size as usize])
+            }
+            TemplatePageSource::Service(client) => client.read_page(
+                meta.backend_offset,
+                &mut page_buf[..fault.page_size as usize],
+            ),
+        }
+    }
+}
+
+struct TemplateServiceClient {
+    stream: UnixStream,
+}
+
+impl TemplateServiceClient {
+    fn connect(socket_path: &Path) -> io::Result<Self> {
+        Ok(Self {
+            stream: UnixStream::connect(socket_path)?,
+        })
+    }
+
+    fn read_page(&mut self, offset: u64, dst: &mut [u8]) -> io::Result<()> {
+        let len = u32::try_from(dst.len()).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "template page request exceeds u32::MAX",
+            )
+        })?;
+        self.stream.write_all(&offset.to_le_bytes())?;
+        self.stream.write_all(&len.to_le_bytes())?;
+
+        let mut header = [0u8; 8];
+        self.stream.read_exact(&mut header)?;
+        let status = u32::from_le_bytes(header[0..4].try_into().unwrap());
+        let response_len = u32::from_le_bytes(header[4..8].try_into().unwrap()) as usize;
+        if status != 0 {
+            return Err(io::Error::other(format!(
+                "template service read failed for offset {offset:#x}"
+            )));
+        }
+        if response_len != dst.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "template service returned {response_len} bytes, expected {}",
+                    dst.len()
+                ),
+            ));
+        }
+        self.stream.read_exact(dst)
     }
 }
 

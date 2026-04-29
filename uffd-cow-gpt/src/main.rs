@@ -1,7 +1,9 @@
 use std::ffi::c_void;
-use std::fs::File;
-use std::io::Write;
+use std::fs::{self, File};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::fd::RawFd;
+use std::os::unix::net::UnixListener;
+use std::path::{Path, PathBuf};
 use std::ptr;
 
 use template_memory_demo::{
@@ -24,6 +26,25 @@ fn main() {
 }
 
 fn run() -> Result<()> {
+    let mut args = std::env::args().skip(1);
+    match args.next().as_deref() {
+        Some("convert") => {
+            let opts = parse_convert_args(args.collect())?;
+            convert_snapshot_to_template(&opts.snapshot_dir, &opts.template_dir)
+        }
+        Some("serve") => {
+            let opts = parse_serve_args(args.collect())?;
+            serve_template(&opts.template_dir, &opts.socket)
+        }
+        Some("demo") | None => run_demo(),
+        Some(other) => Err(std::io::Error::other(format!(
+            "unknown command '{other}'. usage: template-memory-demo [demo|convert|serve]"
+        ))
+        .into()),
+    }
+}
+
+fn run_demo() -> Result<()> {
     let page_size = page_size()?;
     let page_count = REGION_SIZE / page_size;
     let backend = create_demo_backend(page_size, page_count)?;
@@ -114,6 +135,178 @@ fn run() -> Result<()> {
         std::process::id()
     ));
     Ok(())
+}
+
+struct ConvertArgs {
+    snapshot_dir: PathBuf,
+    template_dir: PathBuf,
+}
+
+struct ServeArgs {
+    template_dir: PathBuf,
+    socket: PathBuf,
+}
+
+fn parse_convert_args(args: Vec<String>) -> Result<ConvertArgs> {
+    let mut snapshot_dir = None;
+    let mut template_dir = None;
+    let mut iter = args.into_iter();
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--snapshot-dir" => snapshot_dir = iter.next().map(PathBuf::from),
+            "--template-dir" => template_dir = iter.next().map(PathBuf::from),
+            _ => {
+                return Err(std::io::Error::other(format!("unknown convert arg '{arg}'")).into());
+            }
+        }
+    }
+
+    Ok(ConvertArgs {
+        snapshot_dir: snapshot_dir.ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "--snapshot-dir is required",
+            )
+        })?,
+        template_dir: template_dir.ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "--template-dir is required",
+            )
+        })?,
+    })
+}
+
+fn parse_serve_args(args: Vec<String>) -> Result<ServeArgs> {
+    let mut template_dir = None;
+    let mut socket = None;
+    let mut iter = args.into_iter();
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--template-dir" => template_dir = iter.next().map(PathBuf::from),
+            "--socket" => socket = iter.next().map(PathBuf::from),
+            _ => {
+                return Err(std::io::Error::other(format!("unknown serve arg '{arg}'")).into());
+            }
+        }
+    }
+
+    Ok(ServeArgs {
+        template_dir: template_dir.ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "--template-dir is required",
+            )
+        })?,
+        socket: socket.ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "--socket is required")
+        })?,
+    })
+}
+
+fn convert_snapshot_to_template(snapshot_dir: &Path, template_dir: &Path) -> Result<()> {
+    fs::create_dir_all(template_dir)?;
+    let src = snapshot_dir.join("memory-ranges");
+    let dst = template_dir.join("memory-ranges");
+    fs::copy(&src, &dst)?;
+
+    let bytes = fs::metadata(&dst)?.len();
+    let mut manifest = File::create(template_dir.join("template.manifest"))?;
+    writeln!(manifest, "format=template-memory-v1")?;
+    writeln!(manifest, "backend=memory-ranges")?;
+    writeln!(manifest, "bytes={bytes}")?;
+
+    println!(
+        "converted snapshot memory '{}' into template '{}'",
+        src.display(),
+        template_dir.display()
+    );
+    Ok(())
+}
+
+fn serve_template(template_dir: &Path, socket: &Path) -> Result<()> {
+    let manifest = fs::read_to_string(template_dir.join("template.manifest"))?;
+    if !manifest
+        .lines()
+        .any(|line| line == "format=template-memory-v1")
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "template.manifest is not template-memory-v1",
+        )
+        .into());
+    }
+
+    if socket.exists() {
+        fs::remove_file(socket)?;
+    }
+    if let Some(parent) = socket.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let listener = UnixListener::bind(socket)?;
+    println!(
+        "template service listening on '{}' for template '{}'",
+        socket.display(),
+        template_dir.display()
+    );
+
+    for stream in listener.incoming() {
+        let template_dir = template_dir.to_path_buf();
+        match stream {
+            Ok(mut stream) => {
+                let mut memory = File::open(template_dir.join("memory-ranges"))?;
+                std::thread::spawn(move || {
+                    let _ = serve_template_connection(&mut stream, &mut memory);
+                });
+            }
+            Err(err) => eprintln!("template service accept error: {err}"),
+        }
+    }
+
+    Ok(())
+}
+
+fn serve_template_connection(
+    stream: &mut std::os::unix::net::UnixStream,
+    memory: &mut File,
+) -> std::io::Result<()> {
+    loop {
+        let mut request = [0u8; 12];
+        match stream.read_exact(&mut request) {
+            Ok(()) => {}
+            Err(err)
+                if matches!(
+                    err.kind(),
+                    std::io::ErrorKind::UnexpectedEof
+                        | std::io::ErrorKind::ConnectionReset
+                        | std::io::ErrorKind::BrokenPipe
+                ) =>
+            {
+                return Ok(());
+            }
+            Err(err) => return Err(err),
+        }
+
+        let offset = u64::from_le_bytes(request[0..8].try_into().unwrap());
+        let len = u32::from_le_bytes(request[8..12].try_into().unwrap()) as usize;
+        let mut page = vec![0; len];
+        let result = memory
+            .seek(SeekFrom::Start(offset))
+            .and_then(|_| memory.read_exact(&mut page));
+        match result {
+            Ok(()) => {
+                stream.write_all(&0u32.to_le_bytes())?;
+                stream.write_all(&(len as u32).to_le_bytes())?;
+                stream.write_all(&page)?;
+            }
+            Err(err) => {
+                stream.write_all(&1u32.to_le_bytes())?;
+                stream.write_all(&0u32.to_le_bytes())?;
+                return Err(err);
+            }
+        }
+    }
 }
 
 fn child_process(

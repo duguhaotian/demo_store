@@ -156,6 +156,50 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 4. 在 WP fault 中执行本进程 COW，并维护 per-process `proc_page_meta`。
 5. checkpoint 时扫描 `proc_page_meta`，导出 dirty layer，并把 dirty layer 作为下一次 restore overlay 顶层。
 
+## 自动化测试流程
+
+新增 `scripts/template_restore_e2e.sh` 用于验证最小闭环：
+
+1. 构建 root crate 的 template helper 和 cloud-hypervisor / ch-remote。
+2. 使用给定 `KERNEL`、`DISK` 启动 source sandbox。
+3. 通过 `ch-remote pause` 和 `ch-remote snapshot file://...` 生成快照。
+4. 运行 `template-memory-demo convert --snapshot-dir ... --template-dir ...`，把 `memory-ranges` 转换为 template 目录：
+   - `template.manifest`
+   - `memory-ranges`
+5. 运行 `template-memory-demo serve --template-dir ... --socket ...` 启动外部 template service。
+6. 使用修改后的 cloud-hypervisor restore：
+
+```text
+--restore source_url=file://<snapshot>,memory_restore_mode=ondemand,template_socket=<socket>,resume=true
+```
+
+7. 等待 restored VM API 可用，并检查 restore log 包含：
+
+```text
+template UFFD restore: using template service socket
+```
+
+运行方式：
+
+```bash
+KERNEL=/path/to/vmlinux \
+DISK=/path/to/rootfs.img \
+./scripts/template_restore_e2e.sh
+```
+
+当前最小闭环满足四个测试目标，但语义仍是“单层 snapshot 作为 template backend”：
+
+- 已支持通过 cloud-hypervisor 启动 sandbox 并生成快照。
+- 已支持把 `memory-ranges` 转换为 template helper 可识别的目录格式。
+- 已支持启动独立 template service 进程。
+- 已支持 cloud-hypervisor restore 通过 `template_socket` 从 template service 拉取 fault page。
+
+尚未覆盖完整产品语义：
+
+- template service 目前只服务单层 `memory-ranges`，还不是多层 overlay。
+- cloud-hypervisor 当前 restore 仍是 missing-page restore，没有启用 WP/COW dirty tracking。
+- checkpoint dirty layer 输出还没有接入 cloud-hypervisor snapshot 格式。
+
 ## 当前原型限制
 
 - 为了保持 demo 独立，没有依赖 cloud-hypervisor 内部 crate。

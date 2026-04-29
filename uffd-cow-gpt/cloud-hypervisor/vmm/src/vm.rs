@@ -19,6 +19,7 @@ use std::mem::size_of;
 use std::num::Wrapping;
 use std::ops::Deref;
 use std::os::unix::net::UnixStream;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 #[cfg(not(target_arch = "riscv64"))]
 use std::time::Instant;
@@ -1316,6 +1317,7 @@ impl Vm {
         original_termios: Arc<Mutex<Option<termios>>>,
         snapshot: Option<&Snapshot>,
         source_url: Option<&str>,
+        template_socket: Option<&PathBuf>,
         prefault: Option<bool>,
         memory_restore_mode: Option<MemoryRestoreMode>,
     ) -> Result<Self> {
@@ -1371,6 +1373,7 @@ impl Vm {
                     vm.clone(),
                     &vm_config.lock().unwrap().memory.clone(),
                     source_url,
+                    template_socket.map(PathBuf::as_path),
                     prefault.unwrap_or(false),
                     memory_restore_mode.unwrap_or_default(),
                     phys_bits,

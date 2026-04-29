@@ -849,6 +849,7 @@ impl MemoryManager {
     fn restore_by_uffd(
         &mut self,
         file_path: &Path,
+        template_socket: Option<&Path>,
         saved_regions: &MemoryRangeTable,
         exit_evt: &EventFd,
     ) -> Result<(), Error> {
@@ -866,6 +867,12 @@ impl MemoryManager {
             "UFFD restore: attempting demand-paged restore for {} region(s)",
             saved_regions.regions().len()
         );
+        if let Some(template_socket) = template_socket {
+            info!(
+                "template UFFD restore: using template service socket {}",
+                template_socket.display()
+            );
+        }
 
         if saved_regions
             .regions()
@@ -875,7 +882,11 @@ impl MemoryManager {
             return Err(UffdError::UnalignedRanges.into());
         }
 
-        let snapshot_file = File::open(file_path).map_err(Error::SnapshotOpen)?;
+        let snapshot_file = if template_socket.is_some() {
+            None
+        } else {
+            Some(File::open(file_path).map_err(Error::SnapshotOpen)?)
+        };
 
         let uffd_fd = uffd::create(required_uffd_features).map_err(UffdError::Create)?;
 
@@ -928,6 +939,7 @@ impl MemoryManager {
             file_offset
         );
 
+        let template_socket = template_socket.map(Path::to_path_buf);
         let stop_event = EventFd::new(libc::EFD_NONBLOCK).map_err(Error::EventFdFail)?;
         let thread_stop_event = stop_event.try_clone().map_err(Error::EventFdFail)?;
         let thread_exit_evt = exit_evt.try_clone().map_err(Error::EventFdFail)?;
@@ -937,8 +949,25 @@ impl MemoryManager {
             .name("uffd-handler".to_string())
             .spawn(move || {
                 std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-                    let backend =
-                        template_memory::TemplateRestoreBackend::new(snapshot_file, handler_ranges);
+                    let backend = if let Some(template_socket) = template_socket.as_deref() {
+                        template_memory::TemplateRestoreBackend::from_service(
+                            template_socket,
+                            handler_ranges,
+                        )
+                    } else {
+                        Ok(template_memory::TemplateRestoreBackend::from_file(
+                            snapshot_file.expect("snapshot file missing without template socket"),
+                            handler_ranges,
+                        ))
+                    };
+                    let backend = match backend {
+                        Ok(backend) => backend,
+                        Err(e) => {
+                            let result = Err(e);
+                            result_tx.send(result).ok();
+                            return;
+                        }
+                    };
                     let max_page_size = backend.max_page_size(base_page_size);
                     let result = template_memory::handler_loop(
                         &uffd_fd,
@@ -1497,6 +1526,7 @@ impl MemoryManager {
         vm: Arc<dyn hypervisor::Vm>,
         config: &MemoryConfig,
         source_url: Option<&str>,
+        template_socket: Option<&Path>,
         prefault: bool,
         memory_restore_mode: MemoryRestoreMode,
         phys_bits: u8,
@@ -1523,6 +1553,7 @@ impl MemoryManager {
             if memory_restore_mode == MemoryRestoreMode::OnDemand {
                 mm.lock().unwrap().restore_by_uffd(
                     &memory_file_path,
+                    template_socket,
                     &mem_snapshot.memory_ranges,
                     exit_evt,
                 )?;
