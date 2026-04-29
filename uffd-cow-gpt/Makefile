@@ -25,7 +25,7 @@ help:
 		'  WAIT_FOR_CONFIRM=1       wait for Enter before e2e cleanup when interactive' \
 		'  TEMPLATE_METRICS_LOG=... optional template service metrics log path' \
 		'  METRICS_SETTLE_SECONDS=2 wait time before collecting template metrics' \
-		'  RESTORE_PAUSE_BEFORE_SUMMARY=1 pause restored VM before metrics summary'
+		'  RESTORE_PAUSE_BEFORE_SUMMARY=0 pause restored VM before metrics summary'
 
 .PHONY: fmt
 fmt:
@@ -76,4 +76,4 @@ e2e: build
 		echo '  KERNEL=/path/to/vmlinux DISK=/path/to/rootfs.img make e2e' >&2; \
 		exit 2; \
 	fi
-	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" SKIP_UFFD_PREFLIGHT="$${SKIP_UFFD_PREFLIGHT:-0}" CH_VERBOSE="$${CH_VERBOSE:--v}" WAIT_FOR_CONFIRM="$${WAIT_FOR_CONFIRM:-1}" METRICS_SETTLE_SECONDS="$${METRICS_SETTLE_SECONDS:-2}" RESTORE_PAUSE_BEFORE_SUMMARY="$${RESTORE_PAUSE_BEFORE_SUMMARY:-1}" ./scripts/template_restore_e2e.sh
+	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" SKIP_UFFD_PREFLIGHT="$${SKIP_UFFD_PREFLIGHT:-0}" CH_VERBOSE="$${CH_VERBOSE:--v}" WAIT_FOR_CONFIRM="$${WAIT_FOR_CONFIRM:-1}" METRICS_SETTLE_SECONDS="$${METRICS_SETTLE_SECONDS:-2}" RESTORE_PAUSE_BEFORE_SUMMARY="$${RESTORE_PAUSE_BEFORE_SUMMARY:-0}" ./scripts/template_restore_e2e.sh

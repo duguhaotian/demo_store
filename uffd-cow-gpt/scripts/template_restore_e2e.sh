@@ -11,7 +11,7 @@ SKIP_UFFD_PREFLIGHT="${SKIP_UFFD_PREFLIGHT:-0}"
 CH_VERBOSE="${CH_VERBOSE:--v}"
 WAIT_FOR_CONFIRM="${WAIT_FOR_CONFIRM:-1}"
 METRICS_SETTLE_SECONDS="${METRICS_SETTLE_SECONDS:-2}"
-RESTORE_PAUSE_BEFORE_SUMMARY="${RESTORE_PAUSE_BEFORE_SUMMARY:-1}"
+RESTORE_PAUSE_BEFORE_SUMMARY="${RESTORE_PAUSE_BEFORE_SUMMARY:-0}"
 
 CH_BIN="${CH_BIN:-$CH_DIR/target/debug/cloud-hypervisor}"
 CH_REMOTE="${CH_REMOTE:-$CH_DIR/target/debug/ch-remote}"
@@ -145,7 +145,6 @@ trap cleanup EXIT
 
 wait_for_user_confirmation() {
     [[ "$WAIT_FOR_CONFIRM" == "1" ]] || return 0
-    [[ -t 0 ]] || return 0
 
     echo
     echo "template restore e2e finished; press Enter to stop background processes and exit."
