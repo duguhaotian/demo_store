@@ -1,0 +1,100 @@
+正在设计一个用户态“模板内存系统（template memory system）”，目标是实现类似内核 page cache + COW 的机制，
+用于多进程共享只读内存 + 本地写时复制 + 增量 checkpoint。最终能集成到cloud-hypervisor的checkpoint/restore流程。
+
+【核心架构】
+
+- Template Service（独立进程）：
+  - 管理 memfd (shmem) 作为共享只读页
+  - 管理 template_page_meta（跨进程共享）
+  - 提供 backend overlay read（多层只读文件）
+  - 不处理 UFFD、不处理 COW、不跟踪 dirty
+
+- Client 进程：
+  - mmap memfd（只读共享）
+  - 本地注册 userfaultfd（MISSING + WP）
+  - 本地处理：
+    - RO 缺页（读取 backend → 填充 shmem）
+    - WP fault → 本地 COW（匿名页 + memcpy + remap）
+  - 维护私有 proc_page_meta（dirty / is_private）
+
+【关键约束】
+
+1. COW 必须在本进程执行（不能跨进程分配页）
+2. template_page_meta 只描述加载状态，不包含 dirty/COW
+3. dirty tracking 必须是 per-process
+4. UFFD handler 必须在本地进程
+5. 多进程通过 CAS 协调 shmem 页加载
+
+【数据结构】
+
+template_page_meta（共享）：
+- state: UNLOADED / LOADING / SHARED_READY
+- backend_offset
+
+proc_page_meta（私有）：
+- is_private
+- dirty
+
+【RO 缺页流程】
+
+1. UFFD MISSING fault
+2. CAS(state: UNLOADED → LOADING)
+   - 成功：loader → backend_read → 写入 shmem → state=READY
+   - 失败：等待 READY
+3. UFFDIO_CONTINUE
+
+【写路径（COW）】
+
+1. UFFD WP fault
+2. 分配匿名页
+3. memcpy(shmem → private)
+4. mremap/MAP_FIXED 替换映射
+5. proc_meta 标记：
+   - is_private=1
+   - dirty=1
+
+【Checkpoint】
+
+- 扫描 proc_page_meta
+- 导出 dirty 页 (page_idx + data)
+- 生成当前层的页和底层页的合并块的视图bitmap，用于快速定位页；
+- template 不参与
+
+【Backend overlay】
+
+- 多层只读文件
+- read(offset) ，根据页index，通过合并视图的bitmap元数据，直接定位真实文件和offset；
+
+【性能目标】
+
+- 读路径：0 copy（UFFDIO_CONTINUE）
+- 写路径：1 memcpy + remap
+- 无全局锁（CAS per-page）
+- 无单点 dispatcher
+
+【语义对齐】
+
+- template ≈ page cache
+- proc_meta ≈ PTE
+- COW ≈ per-process
+- dirty ≈ per-process
+
+【已知问题】
+
+- VMA 碎片化
+- checkpoint 扫描成本
+- backend IO 延迟
+
+【参考】
+
+uffd的处理逻辑可以参考 ./demo目录的实例
+
+
+【下一步可以继续设计】
+
+- dirty tracking 优化（bitmap / uffd-wp）
+- async backend_read（io_uring）
+- checkpoint 恢复路径
+- hugepage / NUMA 优化
+
+请基于这个模型继续设计/优化/实现。
