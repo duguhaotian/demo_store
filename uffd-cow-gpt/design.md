@@ -152,16 +152,15 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 
 1. 将 `TemplateRestoreBackend` 从单层 `memory-ranges` 文件扩展为多层只读 overlay。
 2. 将 `TemplatePageMeta` 放到共享 memfd 或可传递的共享 metadata 区域。
-3. 对 shmem-backed guest memory 增加 `MISSING | WP` 注册和 WP fault 分支。
-4. 在 WP fault 中执行本进程 COW，并维护 per-process `proc_page_meta`。
-5. checkpoint 时扫描 `proc_page_meta`，导出 dirty layer，并把 dirty layer 作为下一次 restore overlay 顶层。
+3. 将 WP/COW dirty page state 导出为 checkpoint dirty layer。
+4. checkpoint 时扫描 dirty layer，并把 dirty layer 作为下一次 restore overlay 顶层。
 
-当前 cloud-hypervisor 集成仍只注册 `UFFDIO_REGISTER_MODE_MISSING`。handler 日志会区分
-`access=read/write`，这里的 `write` 表示 guest 对尚未填充页的第一次访问是写访问；它仍然是
-missing fault，不是 write-protect COW fault。由于当前路径用 `UFFDIO_COPY` 直接把匿名 guest
-RAM 页填入原 VMA，没有执行原型中的 `mmap(MAP_FIXED)` 私有页替换，因此 `/proc/<pid>/smaps`
-中 guest RAM 仍会表现为一段连续匿名 VMA，不会因为写访问被拆成多个 VMA。后续只有接入
-`MISSING | WP`、WP fault 分支和 COW 映射替换后，才应预期看到 VMA 被拆分。
+当前 cloud-hypervisor 集成已经注册 `MISSING | WP`。missing fault 从 snapshot/template backend
+读取页面，并通过 `UFFDIO_COPY_MODE_WP` 安装为写保护页；write-protect fault 会复制当前页内容，
+解除 UFFD 写保护，然后用 `mmap(MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS)` 在同一 host address
+替换为私有匿名页并标记 dirty。因此发生 WP/COW 后，`/proc/<pid>/smaps` 中 guest RAM VMA
+可能被拆分；如果仍只看到连续 VMA，优先检查 restore log 中是否已经出现 `kind=write-protect`
+和 `template UFFD WP COW`。
 
 ## 自动化测试流程
 
@@ -225,7 +224,6 @@ sudo sysctl -w vm.unprivileged_userfaultfd=1
 尚未覆盖完整产品语义：
 
 - template service 目前只服务单层 `memory-ranges`，还不是多层 overlay。
-- cloud-hypervisor 当前 restore 仍是 missing-page restore，没有启用 WP/COW dirty tracking。
 - checkpoint dirty layer 输出还没有接入 cloud-hypervisor snapshot 格式。
 
 ## 当前原型限制

@@ -1013,12 +1013,14 @@ impl MemoryManager {
     }
 
     fn required_uffd_features(&self) -> u64 {
-        let mut features = 0u64;
+        let mut features = crate::userfaultfd::UFFD_FEATURE_PAGEFAULT_FLAG_WP;
         if self.memory_zones.values().any(|z| z.shared && !z.hugepages) {
             features |= crate::userfaultfd::UFFD_FEATURE_MISSING_SHMEM;
+            features |= crate::userfaultfd::UFFD_FEATURE_WP_HUGETLBFS_SHMEM;
         }
         if self.memory_zones.values().any(|z| z.hugepages) {
             features |= crate::userfaultfd::UFFD_FEATURE_MISSING_HUGETLBFS;
+            features |= crate::userfaultfd::UFFD_FEATURE_WP_HUGETLBFS_SHMEM;
         }
         features
     }

@@ -17,6 +17,7 @@ use std::io::{self, Read as _, Seek, SeekFrom, Write as _};
 use std::os::fd::{AsFd, AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::net::UnixStream;
 use std::path::Path;
+use std::ptr;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::mpsc::SyncSender;
 use std::thread;
@@ -29,6 +30,7 @@ use crate::uffd;
 const STATE_UNLOADED: u8 = 0;
 const STATE_LOADING: u8 = 1;
 const STATE_SHARED_READY: u8 = 2;
+const STATE_PRIVATE_DIRTY: u8 = 3;
 
 pub(crate) struct TemplateRange {
     pub host_addr: u64,
@@ -224,6 +226,8 @@ pub(crate) fn handler_loop(
     let mut page_buf = vec![0u8; page_size as usize];
     let total_pages = backend.total_pages();
     let mut pages_served: u64 = 0;
+    let mut pages_dirtied: u64 = 0;
+    let mut all_pages_loaded_logged = false;
 
     const EVENT_STOP: u64 = 0;
     const EVENT_UFFD: u64 = 1;
@@ -350,6 +354,11 @@ pub(crate) fn handler_loop(
             fault.page_size
         );
 
+        if (msg.pf_flags & crate::userfaultfd::UFFD_PAGEFAULT_FLAG_WP) != 0 {
+            handle_wp_fault(uffd_fd, &backend, &fault, page_index, &mut pages_dirtied)?;
+            continue;
+        }
+
         match backend.pages[page_index].state.compare_exchange(
             STATE_UNLOADED,
             STATE_LOADING,
@@ -359,7 +368,7 @@ pub(crate) fn handler_loop(
             Ok(_) => {
                 backend.read_page(&fault, &mut page_buf)?;
                 loop {
-                    match uffd::copy(
+                    match uffd::copy_wp(
                         uffd_fd.as_fd(),
                         fault.page_addr,
                         page_buf.as_ptr(),
@@ -394,8 +403,10 @@ pub(crate) fn handler_loop(
                 }
             }
             Err(STATE_LOADING) => {
-                while backend.pages[page_index].state.load(Ordering::Acquire) != STATE_SHARED_READY
-                {
+                while !matches!(
+                    backend.pages[page_index].state.load(Ordering::Acquire),
+                    STATE_SHARED_READY | STATE_PRIVATE_DIRTY
+                ) {
                     thread::yield_now();
                 }
                 if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
@@ -403,6 +414,11 @@ pub(crate) fn handler_loop(
                 }
             }
             Err(STATE_SHARED_READY) => {
+                if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
+                    warn!("UFFDIO_WAKE failed at {:#x}: {e}", fault.page_addr);
+                }
+            }
+            Err(STATE_PRIVATE_DIRTY) => {
                 if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
                     warn!("UFFDIO_WAKE failed at {:#x}: {e}", fault.page_addr);
                 }
@@ -415,9 +431,109 @@ pub(crate) fn handler_loop(
             }
         }
 
-        if pages_served == total_pages {
-            info!("template UFFD handler: all {pages_served} pages served, exiting");
-            return Ok(());
+        if pages_served == total_pages && !all_pages_loaded_logged {
+            info!(
+                "template UFFD handler: all {pages_served} pages loaded, waiting for WP faults or stop event"
+            );
+            all_pages_loaded_logged = true;
         }
     }
+}
+
+fn handle_wp_fault(
+    uffd_fd: &OwnedFd,
+    backend: &TemplateRestoreBackend,
+    fault: &TemplateFault,
+    page_index: usize,
+    pages_dirtied: &mut u64,
+) -> io::Result<()> {
+    let page = &backend.pages[page_index];
+
+    loop {
+        match page.state.load(Ordering::Acquire) {
+            STATE_SHARED_READY => {
+                if page
+                    .state
+                    .compare_exchange(
+                        STATE_SHARED_READY,
+                        STATE_LOADING,
+                        Ordering::AcqRel,
+                        Ordering::Acquire,
+                    )
+                    .is_ok()
+                {
+                    break;
+                }
+            }
+            STATE_LOADING => thread::yield_now(),
+            STATE_PRIVATE_DIRTY => {
+                if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
+                    warn!("UFFDIO_WAKE failed at {:#x}: {e}", fault.page_addr);
+                }
+                return Ok(());
+            }
+            STATE_UNLOADED => {
+                return Err(io::Error::other(format!(
+                    "template UFFD handler: WP fault on unloaded page {}",
+                    fault.page_index
+                )));
+            }
+            other => {
+                return Err(io::Error::other(format!(
+                    "template UFFD handler: WP fault on unexpected page state {other} for page {}",
+                    fault.page_index
+                )));
+            }
+        }
+    }
+
+    let page_size = usize::try_from(fault.page_size)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "page size exceeds usize"))?;
+    let mut snapshot = vec![0u8; page_size];
+    // SAFETY: `fault.page_addr` is a page-aligned address in a registered guest RAM
+    // region. The page has already been populated by UFFDIO_COPY and is readable.
+    unsafe {
+        ptr::copy_nonoverlapping(
+            fault.page_addr as *const u8,
+            snapshot.as_mut_ptr(),
+            page_size,
+        );
+    }
+
+    uffd::writeprotect_dontwake(uffd_fd.as_fd(), fault.page_addr, fault.page_size)?;
+
+    // SAFETY: Replace exactly the faulting page range with a private anonymous
+    // page at the same host virtual address, then restore the old contents.
+    let private_page = unsafe {
+        libc::mmap(
+            fault.page_addr as *mut libc::c_void,
+            page_size,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_FIXED,
+            -1,
+            0,
+        )
+    };
+    if private_page == libc::MAP_FAILED {
+        return Err(io::Error::last_os_error());
+    }
+
+    // SAFETY: `private_page` is a writable mapping of `page_size` bytes returned
+    // by mmap above, and `snapshot` contains exactly `page_size` bytes.
+    unsafe {
+        ptr::copy_nonoverlapping(snapshot.as_ptr(), private_page.cast::<u8>(), page_size);
+    }
+
+    *pages_dirtied += 1;
+    page.state.store(STATE_PRIVATE_DIRTY, Ordering::Release);
+    info!(
+        "template UFFD WP COW: page_index={} backend_offset={} backend_offset_hex={:#x} page_addr={:#x} dirty_pages={}",
+        fault.page_index,
+        fault.backend_offset,
+        fault.backend_offset,
+        fault.page_addr,
+        *pages_dirtied
+    );
+
+    uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size)
 }

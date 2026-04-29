@@ -36,7 +36,7 @@ pub enum UffdError {
         source: std::io::Error,
     },
 
-    #[error("Region at {addr:#x}+{len:#x} missing COPY/WAKE support")]
+    #[error("Region at {addr:#x}+{len:#x} missing COPY/WAKE/WRITEPROTECT support")]
     MissingIoctlSupport { addr: u64, len: u64 },
 
     #[error("Failed to spawn handler thread")]

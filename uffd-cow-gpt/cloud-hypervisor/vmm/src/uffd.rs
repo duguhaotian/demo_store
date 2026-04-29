@@ -40,6 +40,13 @@ pub(crate) struct UffdioCopy {
     pub copy: i64,
 }
 
+#[repr(C)]
+pub(crate) struct UffdioWriteProtect {
+    pub range_start: u64,
+    pub range_len: u64,
+    pub mode: u64,
+}
+
 /// Flat representation of `struct uffd_msg` (32 bytes).
 ///
 /// The kernel struct contains an 8-byte header followed by a 24-byte
@@ -100,12 +107,12 @@ pub(crate) fn create(required_features: u64) -> Result<OwnedFd, std::io::Error> 
     Ok(fd)
 }
 
-/// Register a memory range for missing-page fault handling.
+/// Register a memory range for missing-page and write-protect fault handling.
 pub(crate) fn register(fd: BorrowedFd<'_>, addr: u64, len: u64) -> Result<u64, std::io::Error> {
     let mut reg = UffdioRegister {
         range_start: addr,
         range_len: len,
-        mode: userfaultfd::UFFDIO_REGISTER_MODE_MISSING,
+        mode: userfaultfd::UFFDIO_REGISTER_MODE_MISSING | userfaultfd::UFFDIO_REGISTER_MODE_WP,
         ioctls: 0,
     };
     // SAFETY: `reg` is a valid, correctly-sized struct for this ioctl.
@@ -122,18 +129,28 @@ pub(crate) fn register(fd: BorrowedFd<'_>, addr: u64, len: u64) -> Result<u64, s
     Ok(reg.ioctls)
 }
 
-/// Resolve a page fault by copying data into the faulted address.
-pub(crate) fn copy(
+/// Resolve a page fault and leave the copied page write-protected.
+pub(crate) fn copy_wp(
     fd: BorrowedFd<'_>,
     dst: u64,
     src: *const u8,
     len: u64,
 ) -> Result<(), std::io::Error> {
+    copy_with_mode(fd, dst, src, len, userfaultfd::UFFDIO_COPY_MODE_WP)
+}
+
+fn copy_with_mode(
+    fd: BorrowedFd<'_>,
+    dst: u64,
+    src: *const u8,
+    len: u64,
+    mode: u64,
+) -> Result<(), std::io::Error> {
     let mut cp = UffdioCopy {
         dst,
         src: src as u64,
         len,
-        mode: 0,
+        mode,
         copy: 0,
     };
     // SAFETY: `cp` is a valid, correctly-sized struct for this ioctl.
@@ -169,6 +186,31 @@ pub(crate) fn wake(fd: BorrowedFd<'_>, addr: u64, len: u64) -> Result<(), std::i
             fd.as_raw_fd(),
             userfaultfd::UFFDIO_WAKE as libc::Ioctl,
             &mut range,
+        )
+    };
+    if ret < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+/// Remove userfaultfd write protection from a page before replacing it.
+pub(crate) fn writeprotect_dontwake(
+    fd: BorrowedFd<'_>,
+    addr: u64,
+    len: u64,
+) -> Result<(), std::io::Error> {
+    let mut wp = UffdioWriteProtect {
+        range_start: addr,
+        range_len: len,
+        mode: userfaultfd::UFFDIO_WRITEPROTECT_MODE_DONTWAKE,
+    };
+    // SAFETY: `wp` is a valid, correctly-sized struct for this ioctl.
+    let ret = unsafe {
+        libc::ioctl(
+            fd.as_raw_fd(),
+            userfaultfd::UFFDIO_WRITEPROTECT as libc::Ioctl,
+            &mut wp,
         )
     };
     if ret < 0 {
