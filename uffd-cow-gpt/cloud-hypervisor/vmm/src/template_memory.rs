@@ -319,6 +319,18 @@ pub(crate) fn handler_loop(
         }
 
         let fault_addr = msg.pf_address;
+        let fault_access = if (msg.pf_flags & crate::userfaultfd::UFFD_PAGEFAULT_FLAG_WRITE) != 0 {
+            "write"
+        } else {
+            "read"
+        };
+        let fault_kind = if (msg.pf_flags & crate::userfaultfd::UFFD_PAGEFAULT_FLAG_WP) != 0 {
+            "write-protect"
+        } else if (msg.pf_flags & crate::userfaultfd::UFFD_PAGEFAULT_FLAG_MINOR) != 0 {
+            "minor"
+        } else {
+            "missing"
+        };
         let fault = backend.locate_fault(fault_addr).ok_or_else(|| {
             io::Error::other(format!(
                 "template UFFD handler: fault at {fault_addr:#x} does not belong to any registered range",
@@ -326,7 +338,10 @@ pub(crate) fn handler_loop(
         })?;
         let page_index = fault.page_index as usize;
         info!(
-            "template UFFD fault: addr={:#x} page_addr={:#x} page_index={} backend_offset={} backend_offset_hex={:#x} page_size={}",
+            "template UFFD fault: kind={} access={} flags={:#x} addr={:#x} page_addr={:#x} page_index={} backend_offset={} backend_offset_hex={:#x} page_size={}",
+            fault_kind,
+            fault_access,
+            msg.pf_flags,
             fault_addr,
             fault.page_addr,
             fault.page_index,

@@ -156,6 +156,13 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 4. 在 WP fault 中执行本进程 COW，并维护 per-process `proc_page_meta`。
 5. checkpoint 时扫描 `proc_page_meta`，导出 dirty layer，并把 dirty layer 作为下一次 restore overlay 顶层。
 
+当前 cloud-hypervisor 集成仍只注册 `UFFDIO_REGISTER_MODE_MISSING`。handler 日志会区分
+`access=read/write`，这里的 `write` 表示 guest 对尚未填充页的第一次访问是写访问；它仍然是
+missing fault，不是 write-protect COW fault。由于当前路径用 `UFFDIO_COPY` 直接把匿名 guest
+RAM 页填入原 VMA，没有执行原型中的 `mmap(MAP_FIXED)` 私有页替换，因此 `/proc/<pid>/smaps`
+中 guest RAM 仍会表现为一段连续匿名 VMA，不会因为写访问被拆成多个 VMA。后续只有接入
+`MISSING | WP`、WP fault 分支和 COW 映射替换后，才应预期看到 VMA 被拆分。
+
 ## 自动化测试流程
 
 新增 `scripts/template_restore_e2e.sh` 用于验证最小闭环：
@@ -187,6 +194,8 @@ template UFFD restore: using template service socket
    - `template_read_ratio`: restore 期间实际从 template 读取的唯一字节数 / template backend 总字节数。
    - `deferred_reuse_ratio`: restore 后仍未被 fault 触碰的 template 字节比例。
    - `duplicate_request_ratio`: 重复 page request / 总 page request。
+   - `access_read/access_write`: cloud-hypervisor handler 观测到的 missing fault 访问类型。
+   - `kind_missing/kind_write_protect/kind_minor`: UFFD fault 类型；当前预期主要是 `kind_missing`。
    - 同时输出重复最多的 CH fault backend offset 和 template service request offset。
    - 默认在统计前暂停 restored VM，避免 `resume=true` 后 guest 持续运行导致 metrics 继续增长。
 

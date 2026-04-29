@@ -29,6 +29,9 @@ const _: () = assert!(UFFDIO_WAKE <= u32::MAX as u64);
 pub const UFFD_API: u64 = 0xAA;
 pub const UFFDIO_REGISTER_MODE_MISSING: u64 = 1;
 pub const UFFD_EVENT_PAGEFAULT: u8 = 0x12;
+pub const UFFD_PAGEFAULT_FLAG_WRITE: u64 = 1 << 0;
+pub const UFFD_PAGEFAULT_FLAG_WP: u64 = 1 << 1;
+pub const UFFD_PAGEFAULT_FLAG_MINOR: u64 = 1 << 2;
 pub const UFFD_FEATURE_MISSING_HUGETLBFS: u64 = 1 << 4;
 pub const UFFD_FEATURE_MISSING_SHMEM: u64 = 1 << 5;
 

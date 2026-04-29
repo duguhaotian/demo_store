@@ -224,11 +224,19 @@ summarize_uffd_faults() {
     fault_count="$(printf '%s\n' "$fault_offsets" | sed '/^$/d' | wc -l)"
     unique_fault_offsets="$(printf '%s\n' "$fault_offsets" | sed '/^$/d' | sort -n | uniq | wc -l)"
     duplicate_faults=$((fault_count - unique_fault_offsets))
+    local read_faults write_faults missing_faults wp_faults minor_faults
+    read_faults="$(grep -c 'template UFFD fault: .*access=read ' "$RESTORE_LOG" || true)"
+    write_faults="$(grep -c 'template UFFD fault: .*access=write ' "$RESTORE_LOG" || true)"
+    missing_faults="$(grep -c 'template UFFD fault: kind=missing ' "$RESTORE_LOG" || true)"
+    wp_faults="$(grep -c 'template UFFD fault: kind=write-protect ' "$RESTORE_LOG" || true)"
+    minor_faults="$(grep -c 'template UFFD fault: kind=minor ' "$RESTORE_LOG" || true)"
 
     echo
     echo "cloud-hypervisor UFFD fault summary:"
     echo "  restore_log=$RESTORE_LOG"
     echo "  faults=$fault_count unique_backend_offsets=$unique_fault_offsets duplicate_faults=$duplicate_faults"
+    echo "  access_read=$read_faults access_write=$write_faults"
+    echo "  kind_missing=$missing_faults kind_write_protect=$wp_faults kind_minor=$minor_faults"
     echo "  duplicate_fault_ratio=$(pct "$duplicate_faults" "$fault_count")%"
     echo "  top repeated fault offsets:"
     printf '%s\n' "$fault_offsets" \
