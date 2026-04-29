@@ -6,6 +6,7 @@ CH_DIR="${CH_DIR:-$ROOT_DIR/cloud-hypervisor}"
 WORKDIR="${WORKDIR:-$(mktemp -d /tmp/template-restore-e2e.XXXXXX)}"
 MEMORY_SIZE="${MEMORY_SIZE:-512M}"
 CMDLINE="${CMDLINE:-console=hvc0 root=/dev/vda1 rw}"
+SECCOMP="${SECCOMP:-false}"
 
 CH_BIN="${CH_BIN:-$CH_DIR/target/debug/cloud-hypervisor}"
 CH_REMOTE="${CH_REMOTE:-$CH_DIR/target/debug/ch-remote}"
@@ -23,6 +24,7 @@ Optional environment:
   WORKDIR=$WORKDIR
   MEMORY_SIZE=$MEMORY_SIZE
   CMDLINE="$CMDLINE"
+  SECCOMP=$SECCOMP
   CH_BIN=$CH_BIN
   CH_REMOTE=$CH_REMOTE
   TEMPLATE_BIN=$TEMPLATE_BIN
@@ -41,13 +43,27 @@ require_file() {
 
 wait_for_api() {
     local socket="$1"
+    local log_path="${2:-}"
+    local pid="${3:-}"
     for _ in $(seq 1 120); do
         if [[ -S "$socket" ]] && "$CH_REMOTE" --api-socket "$socket" info >/dev/null 2>&1; then
             return 0
         fi
+        if [[ -n "$pid" ]] && ! kill -0 "$pid" >/dev/null 2>&1; then
+            echo "cloud-hypervisor exited before API socket became ready: $socket" >&2
+            if [[ -n "$log_path" && -f "$log_path" ]]; then
+                echo "last 120 lines from $log_path:" >&2
+                tail -n 120 "$log_path" >&2
+            fi
+            return 1
+        fi
         sleep 0.5
     done
     echo "timed out waiting for API socket $socket" >&2
+    if [[ -n "$log_path" && -f "$log_path" ]]; then
+        echo "last 120 lines from $log_path:" >&2
+        tail -n 120 "$log_path" >&2
+    fi
     return 1
 }
 
@@ -89,13 +105,14 @@ mkdir -p "$SNAPSHOT_DIR"
 echo "[3/7] starting source sandbox"
 "$CH_BIN" \
     --api-socket "$SRC_API" \
+    --seccomp "$SECCOMP" \
     --kernel "$KERNEL" \
     --disk "path=$DISK" \
     --memory "size=$MEMORY_SIZE" \
     --cmdline "$CMDLINE" \
     >"$SRC_LOG" 2>&1 &
 SRC_PID=$!
-wait_for_api "$SRC_API"
+wait_for_api "$SRC_API" "$SRC_LOG" "$SRC_PID"
 
 echo "[4/7] pausing and snapshotting source sandbox"
 "$CH_REMOTE" --api-socket "$SRC_API" pause
@@ -121,10 +138,11 @@ test -S "$TEMPLATE_SOCKET"
 echo "[7/7] restoring sandbox through template service"
 "$CH_BIN" \
     --api-socket "$RESTORE_API" \
+    --seccomp "$SECCOMP" \
     --restore "source_url=file://$SNAPSHOT_DIR,memory_restore_mode=ondemand,template_socket=$TEMPLATE_SOCKET,resume=true" \
     >"$RESTORE_LOG" 2>&1 &
 RESTORE_PID=$!
-wait_for_api "$RESTORE_API"
+wait_for_api "$RESTORE_API" "$RESTORE_LOG" "$RESTORE_PID"
 
 if ! grep -q "template UFFD restore: using template service socket" "$RESTORE_LOG"; then
     echo "restore completed, but restore log does not show template service usage" >&2
