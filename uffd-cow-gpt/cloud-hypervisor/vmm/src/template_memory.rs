@@ -31,6 +31,7 @@ const STATE_UNLOADED: u8 = 0;
 const STATE_LOADING: u8 = 1;
 const STATE_SHARED_READY: u8 = 2;
 const STATE_PRIVATE_DIRTY: u8 = 3;
+const DEFAULT_COW_CHUNK_SIZE: u64 = 1024 * 1024;
 
 pub(crate) struct TemplateRange {
     pub host_addr: u64,
@@ -76,6 +77,14 @@ struct TemplateFault {
     page_size: u64,
     page_index: u64,
     backend_offset: u64,
+}
+
+struct TemplateCowChunk {
+    start_addr: u64,
+    len: u64,
+    first_page_index: u64,
+    page_count: u64,
+    page_size: u64,
 }
 
 struct TemplatePageMeta {
@@ -154,6 +163,25 @@ impl TemplateRestoreBackend {
             .find_map(|range| range.locate(fault_addr))
     }
 
+    fn cow_chunk_for_fault(&self, fault: &TemplateFault) -> Option<TemplateCowChunk> {
+        let range = self.ranges.iter().find(|range| {
+            fault.page_index >= range.first_page_index
+                && fault.page_index < range.first_page_index + range.page_count()
+        })?;
+        let offset_in_range = (fault.page_index - range.first_page_index) * range.page_size;
+        let chunk_size = cow_chunk_size(range.page_size);
+        let chunk_offset = (offset_in_range / chunk_size) * chunk_size;
+        let len = std::cmp::min(chunk_size, range.length - chunk_offset);
+
+        Some(TemplateCowChunk {
+            start_addr: range.host_addr + chunk_offset,
+            len,
+            first_page_index: range.first_page_index + chunk_offset / range.page_size,
+            page_count: len.div_ceil(range.page_size),
+            page_size: range.page_size,
+        })
+    }
+
     fn read_page(&mut self, fault: &TemplateFault, page_buf: &mut [u8]) -> io::Result<()> {
         let meta = &self.pages[fault.page_index as usize];
         debug_assert_eq!(meta.backend_offset, fault.backend_offset);
@@ -168,6 +196,14 @@ impl TemplateRestoreBackend {
                 &mut page_buf[..fault.page_size as usize],
             ),
         }
+    }
+}
+
+fn cow_chunk_size(page_size: u64) -> u64 {
+    if page_size >= DEFAULT_COW_CHUNK_SIZE {
+        page_size
+    } else {
+        DEFAULT_COW_CHUNK_SIZE
     }
 }
 
@@ -355,7 +391,14 @@ pub(crate) fn handler_loop(
         );
 
         if (msg.pf_flags & crate::userfaultfd::UFFD_PAGEFAULT_FLAG_WP) != 0 {
-            handle_wp_fault(uffd_fd, &backend, &fault, page_index, &mut pages_dirtied)?;
+            handle_wp_fault(
+                uffd_fd,
+                &mut backend,
+                &fault,
+                &mut page_buf,
+                &mut pages_served,
+                &mut pages_dirtied,
+            )?;
             continue;
         }
 
@@ -442,72 +485,133 @@ pub(crate) fn handler_loop(
 
 fn handle_wp_fault(
     uffd_fd: &OwnedFd,
-    backend: &TemplateRestoreBackend,
+    backend: &mut TemplateRestoreBackend,
     fault: &TemplateFault,
-    page_index: usize,
+    page_buf: &mut [u8],
+    pages_served: &mut u64,
     pages_dirtied: &mut u64,
 ) -> io::Result<()> {
-    let page = &backend.pages[page_index];
+    let chunk = backend.cow_chunk_for_fault(fault).ok_or_else(|| {
+        io::Error::other(format!(
+            "template UFFD handler: cannot locate COW chunk for page {}",
+            fault.page_index
+        ))
+    })?;
 
-    loop {
-        match page.state.load(Ordering::Acquire) {
-            STATE_SHARED_READY => {
-                if page
-                    .state
-                    .compare_exchange(
-                        STATE_SHARED_READY,
-                        STATE_LOADING,
-                        Ordering::AcqRel,
-                        Ordering::Acquire,
-                    )
-                    .is_ok()
-                {
-                    break;
+    if chunk.page_size > page_buf.len() as u64 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "COW chunk page size exceeds handler page buffer",
+        ));
+    }
+
+    info!(
+        "template UFFD WP COW begin: page_index={} backend_offset={} backend_offset_hex={:#x} chunk_start={:#x} chunk_len={} chunk_pages={}",
+        fault.page_index,
+        fault.backend_offset,
+        fault.backend_offset,
+        chunk.start_addr,
+        chunk.len,
+        chunk.page_count
+    );
+
+    let mut acquired = Vec::with_capacity(chunk.page_count as usize);
+    let mut newly_dirty_pages = 0u64;
+    for chunk_page in 0..chunk.page_count {
+        let chunk_page_index = (chunk.first_page_index + chunk_page) as usize;
+        loop {
+            let state = backend.pages[chunk_page_index]
+                .state
+                .load(Ordering::Acquire);
+            match state {
+                STATE_UNLOADED | STATE_SHARED_READY => {
+                    if backend.pages[chunk_page_index]
+                        .state
+                        .compare_exchange(state, STATE_LOADING, Ordering::AcqRel, Ordering::Acquire)
+                        .is_ok()
+                    {
+                        acquired.push((chunk_page_index, state));
+                        newly_dirty_pages += 1;
+                        break;
+                    }
                 }
-            }
-            STATE_LOADING => thread::yield_now(),
-            STATE_PRIVATE_DIRTY => {
-                if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
-                    warn!("UFFDIO_WAKE failed at {:#x}: {e}", fault.page_addr);
+                STATE_LOADING => thread::yield_now(),
+                STATE_PRIVATE_DIRTY => break,
+                other => {
+                    return Err(io::Error::other(format!(
+                        "template UFFD handler: COW chunk saw unexpected page state {other} for page {chunk_page_index}",
+                    )));
                 }
-                return Ok(());
-            }
-            STATE_UNLOADED => {
-                return Err(io::Error::other(format!(
-                    "template UFFD handler: WP fault on unloaded page {}",
-                    fault.page_index
-                )));
-            }
-            other => {
-                return Err(io::Error::other(format!(
-                    "template UFFD handler: WP fault on unexpected page state {other} for page {}",
-                    fault.page_index
-                )));
             }
         }
     }
 
-    let page_size = usize::try_from(fault.page_size)
+    if acquired.is_empty() {
+        if let Err(e) = uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size) {
+            warn!("UFFDIO_WAKE failed at {:#x}: {e}", fault.page_addr);
+        }
+        return Ok(());
+    }
+
+    for (chunk_page_index, old_state) in &acquired {
+        if *old_state != STATE_UNLOADED {
+            continue;
+        }
+
+        let backend_offset = backend.pages[*chunk_page_index].backend_offset;
+        let page_offset_in_chunk =
+            (*chunk_page_index as u64 - chunk.first_page_index) * chunk.page_size;
+        let page_fault = TemplateFault {
+            page_addr: chunk.start_addr + page_offset_in_chunk,
+            page_size: chunk.page_size,
+            page_index: *chunk_page_index as u64,
+            backend_offset,
+        };
+
+        backend.read_page(&page_fault, page_buf)?;
+        loop {
+            match uffd::copy_wp(
+                uffd_fd.as_fd(),
+                page_fault.page_addr,
+                page_buf.as_ptr(),
+                page_fault.page_size,
+            ) {
+                Ok(()) => {
+                    *pages_served += 1;
+                    break;
+                }
+                Err(e) if e.raw_os_error() == Some(libc::EEXIST) => {
+                    *pages_served += 1;
+                    break;
+                }
+                Err(e) if e.raw_os_error() == Some(libc::EAGAIN) => thread::yield_now(),
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    let chunk_len = usize::try_from(chunk.len)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "page size exceeds usize"))?;
-    let mut snapshot = vec![0u8; page_size];
-    // SAFETY: `fault.page_addr` is a page-aligned address in a registered guest RAM
-    // region. The page has already been populated by UFFDIO_COPY and is readable.
+    let mut snapshot = vec![0u8; chunk_len];
+    // SAFETY: `chunk.start_addr` points to a COW chunk in registered guest RAM.
+    // All unloaded pages in the chunk were populated above, so reading the whole
+    // chunk cannot recursively fault back into this handler.
     unsafe {
         ptr::copy_nonoverlapping(
-            fault.page_addr as *const u8,
+            chunk.start_addr as *const u8,
             snapshot.as_mut_ptr(),
-            page_size,
+            chunk_len,
         );
     }
 
-    uffd::writeprotect_dontwake(uffd_fd.as_fd(), fault.page_addr, fault.page_size)?;
+    uffd::writeprotect_dontwake(uffd_fd.as_fd(), chunk.start_addr, chunk.len)?;
 
     // SAFETY: Replace exactly the faulting page range with a private anonymous
     // page at the same host virtual address, then restore the old contents.
     let private_page = unsafe {
         libc::mmap(
-            fault.page_addr as *mut libc::c_void,
-            page_size,
+            chunk.start_addr as *mut libc::c_void,
+            chunk_len,
             libc::PROT_READ | libc::PROT_WRITE,
             libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_FIXED,
             -1,
@@ -518,22 +622,30 @@ fn handle_wp_fault(
         return Err(io::Error::last_os_error());
     }
 
-    // SAFETY: `private_page` is a writable mapping of `page_size` bytes returned
-    // by mmap above, and `snapshot` contains exactly `page_size` bytes.
+    // SAFETY: `private_page` is a writable mapping of `chunk_len` bytes returned
+    // by mmap above, and `snapshot` contains exactly `chunk_len` bytes.
     unsafe {
-        ptr::copy_nonoverlapping(snapshot.as_ptr(), private_page.cast::<u8>(), page_size);
+        ptr::copy_nonoverlapping(snapshot.as_ptr(), private_page.cast::<u8>(), chunk_len);
     }
 
-    *pages_dirtied += 1;
-    page.state.store(STATE_PRIVATE_DIRTY, Ordering::Release);
+    for chunk_page in 0..chunk.page_count {
+        let chunk_page_index = (chunk.first_page_index + chunk_page) as usize;
+        backend.pages[chunk_page_index]
+            .state
+            .store(STATE_PRIVATE_DIRTY, Ordering::Release);
+    }
+    *pages_dirtied += newly_dirty_pages;
     info!(
-        "template UFFD WP COW: page_index={} backend_offset={} backend_offset_hex={:#x} page_addr={:#x} dirty_pages={}",
+        "template UFFD WP COW: page_index={} backend_offset={} backend_offset_hex={:#x} page_addr={:#x} chunk_start={:#x} chunk_len={} cow_pages={} dirty_pages={}",
         fault.page_index,
         fault.backend_offset,
         fault.backend_offset,
         fault.page_addr,
+        chunk.start_addr,
+        chunk.len,
+        newly_dirty_pages,
         *pages_dirtied
     );
 
-    uffd::wake(uffd_fd.as_fd(), fault.page_addr, fault.page_size)
+    uffd::wake(uffd_fd.as_fd(), chunk.start_addr, chunk.len)
 }

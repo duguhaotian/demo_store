@@ -156,11 +156,13 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 4. checkpoint 时扫描 dirty layer，并把 dirty layer 作为下一次 restore overlay 顶层。
 
 当前 cloud-hypervisor 集成已经注册 `MISSING | WP`。missing fault 从 snapshot/template backend
-读取页面，并通过 `UFFDIO_COPY_MODE_WP` 安装为写保护页；write-protect fault 会复制当前页内容，
-解除 UFFD 写保护，然后用 `mmap(MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS)` 在同一 host address
-替换为私有匿名页并标记 dirty。因此发生 WP/COW 后，`/proc/<pid>/smaps` 中 guest RAM VMA
-可能被拆分；如果仍只看到连续 VMA，优先检查 restore log 中是否已经出现 `kind=write-protect`
-和 `template UFFD WP COW`。
+读取页面，并通过 `UFFDIO_COPY_MODE_WP` 安装为写保护页；write-protect fault 会以 1MiB chunk
+为粒度执行 COW：先主动补齐 chunk 内尚未加载的页，避免 handler 读取未加载页时自锁，再复制
+chunk 内容，解除 UFFD 写保护，然后用 `mmap(MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS)` 在同一
+host address 替换为私有匿名映射并标记 dirty。这样会牺牲最多 1MiB 粒度的复用率，但能显著
+减少 4KiB 单页 COW 导致的 VMA 碎片。发生 WP/COW 后，`/proc/<pid>/smaps` 中 guest RAM VMA
+可能按 1MiB 左右的粒度被拆分；如果仍只看到连续 VMA，优先检查 restore log 中是否已经出现
+`kind=write-protect` 和 `template UFFD WP COW`。
 
 ## 自动化测试流程
 
@@ -193,10 +195,12 @@ template UFFD restore: using template service socket
    - `template_read_ratio`: restore 期间实际从 template 读取的唯一字节数 / template backend 总字节数。
    - `deferred_reuse_ratio`: restore 后仍未被 fault 触碰的 template 字节比例。
    - `duplicate_request_ratio`: 重复 page request / 总 page request。
-   - `access_read/access_write`: cloud-hypervisor handler 观测到的 missing fault 访问类型。
+   - `access_read/access_write`: cloud-hypervisor handler 观测到的 UFFD fault 访问类型。
    - `kind_missing/kind_write_protect/kind_minor`: UFFD fault 类型；当前预期主要是 `kind_missing`。
+   - `wp_cow_chunks/wp_cow_pages`: WP COW 的 chunk 数，以及因 chunk COW 被标记 dirty/private 的页数。
    - 同时输出重复最多的 CH fault backend offset 和 template service request offset。
-   - 默认在统计前暂停 restored VM，避免 `resume=true` 后 guest 持续运行导致 metrics 继续增长。
+   - 默认不暂停 restored VM，便于继续观察运行中的 WP fault、VMA 拆分和 metrics 变化；如需稳定截面，
+     可设置 `RESTORE_PAUSE_BEFORE_SUMMARY=1`。
 
 运行方式：
 

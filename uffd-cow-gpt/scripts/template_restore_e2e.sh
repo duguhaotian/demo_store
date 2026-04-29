@@ -229,8 +229,9 @@ summarize_uffd_faults() {
     missing_faults="$(grep -c 'template UFFD fault: kind=missing ' "$RESTORE_LOG" || true)"
     wp_faults="$(grep -c 'template UFFD fault: kind=write-protect ' "$RESTORE_LOG" || true)"
     minor_faults="$(grep -c 'template UFFD fault: kind=minor ' "$RESTORE_LOG" || true)"
-    local cow_pages
-    cow_pages="$(grep -c 'template UFFD WP COW:' "$RESTORE_LOG" || true)"
+    local cow_chunks cow_pages
+    cow_chunks="$(grep -c 'template UFFD WP COW:' "$RESTORE_LOG" || true)"
+    cow_pages="$(grep 'template UFFD WP COW:' "$RESTORE_LOG" | sed -n 's/.*cow_pages=\([0-9][0-9]*\).*/\1/p' | awk '{ sum += $1 } END { print sum + 0 }')"
 
     echo
     echo "cloud-hypervisor UFFD fault summary:"
@@ -238,7 +239,7 @@ summarize_uffd_faults() {
     echo "  faults=$fault_count unique_backend_offsets=$unique_fault_offsets duplicate_faults=$duplicate_faults"
     echo "  access_read=$read_faults access_write=$write_faults"
     echo "  kind_missing=$missing_faults kind_write_protect=$wp_faults kind_minor=$minor_faults"
-    echo "  wp_cow_pages=$cow_pages"
+    echo "  wp_cow_chunks=$cow_chunks wp_cow_pages=$cow_pages"
     echo "  duplicate_fault_ratio=$(pct "$duplicate_faults" "$fault_count")%"
     echo "  top repeated fault offsets:"
     printf '%s\n' "$fault_offsets" \
