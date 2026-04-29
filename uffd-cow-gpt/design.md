@@ -187,6 +187,14 @@ DISK=/path/to/rootfs.img \
 ./scripts/template_restore_e2e.sh
 ```
 
+宿主机需要允许创建可处理 KVM/kernel-originated fault 的 `userfaultfd`。如果 restore 日志中出现
+`Failed to create userfaultfd: Operation not permitted`，通常是当前进程缺少 `CAP_SYS_PTRACE` 且
+`vm.unprivileged_userfaultfd=0`。测试脚本会在启动前检查这个条件；可通过以下方式修复：
+
+```bash
+sudo sysctl -w vm.unprivileged_userfaultfd=1
+```
+
 当前最小闭环满足四个测试目标，但语义仍是“单层 snapshot 作为 template backend”：
 
 - 已支持通过 cloud-hypervisor 启动 sandbox 并生成快照。
@@ -205,4 +213,5 @@ DISK=/path/to/rootfs.img \
 - 为了保持 demo 独立，没有依赖 cloud-hypervisor 内部 crate。
 - 使用 Linux x86_64 syscall/ioctl 常量。
 - COW 使用 `MAP_FIXED`，会产生 VMA 碎片，正好暴露后续需要优化的问题。
-- 如果宿主内核禁用 unprivileged userfaultfd，运行会失败，但编译仍可验证。
+- 如果宿主内核禁用 unprivileged userfaultfd 且进程没有 `CAP_SYS_PTRACE`，on-demand restore
+  会失败，但编译仍可验证。

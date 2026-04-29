@@ -64,7 +64,18 @@ pub(crate) fn create(required_features: u64) -> Result<OwnedFd, std::io::Error> 
     // SAFETY: `userfaultfd` syscall with O_CLOEXEC | O_NONBLOCK flags.
     let fd = unsafe { libc::syscall(libc::SYS_userfaultfd, libc::O_CLOEXEC | libc::O_NONBLOCK) };
     if fd < 0 {
-        return Err(std::io::Error::last_os_error());
+        let err = std::io::Error::last_os_error();
+        if err.kind() == std::io::ErrorKind::PermissionDenied {
+            return Err(std::io::Error::new(
+                err.kind(),
+                format!(
+                    "{err}; on-demand restore requires userfaultfd permissions that can handle \
+                     KVM/kernel-originated faults. Enable vm.unprivileged_userfaultfd=1 or run \
+                     cloud-hypervisor with CAP_SYS_PTRACE"
+                ),
+            ));
+        }
+        return Err(err);
     }
     // SAFETY: the syscall returned a valid fd above.
     let fd = unsafe { OwnedFd::from_raw_fd(fd as std::os::unix::io::RawFd) };

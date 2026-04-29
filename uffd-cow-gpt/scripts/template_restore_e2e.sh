@@ -7,6 +7,7 @@ WORKDIR="${WORKDIR:-$(mktemp -d /tmp/template-restore-e2e.XXXXXX)}"
 MEMORY_SIZE="${MEMORY_SIZE:-512M}"
 CMDLINE="${CMDLINE:-console=hvc0 root=/dev/vda1 rw}"
 SECCOMP="${SECCOMP:-false}"
+SKIP_UFFD_PREFLIGHT="${SKIP_UFFD_PREFLIGHT:-0}"
 
 CH_BIN="${CH_BIN:-$CH_DIR/target/debug/cloud-hypervisor}"
 CH_REMOTE="${CH_REMOTE:-$CH_DIR/target/debug/ch-remote}"
@@ -25,6 +26,7 @@ Optional environment:
   MEMORY_SIZE=$MEMORY_SIZE
   CMDLINE="$CMDLINE"
   SECCOMP=$SECCOMP
+  SKIP_UFFD_PREFLIGHT=$SKIP_UFFD_PREFLIGHT
   CH_BIN=$CH_BIN
   CH_REMOTE=$CH_REMOTE
   TEMPLATE_BIN=$TEMPLATE_BIN
@@ -39,6 +41,42 @@ require_file() {
         usage >&2
         exit 2
     fi
+}
+
+has_cap_sys_ptrace() {
+    local cap_eff_hex
+    cap_eff_hex="$(awk '/^CapEff:/ { print $2 }' /proc/self/status 2>/dev/null || true)"
+    [[ -n "$cap_eff_hex" ]] || return 1
+
+    local cap_eff=$((16#$cap_eff_hex))
+    (( (cap_eff & (1 << 19)) != 0 ))
+}
+
+check_uffd_permissions() {
+    [[ "$SKIP_UFFD_PREFLIGHT" == "1" ]] && return 0
+
+    local sysctl_path="/proc/sys/vm/unprivileged_userfaultfd"
+    [[ -r "$sysctl_path" ]] || return 0
+
+    local unprivileged
+    read -r unprivileged <"$sysctl_path" || unprivileged=""
+    if [[ "$unprivileged" == "1" ]] || has_cap_sys_ptrace; then
+        return 0
+    fi
+
+    cat >&2 <<EOF
+on-demand restore needs userfaultfd permissions that can handle KVM/kernel-originated faults.
+Current host has vm.unprivileged_userfaultfd=$unprivileged and this process lacks CAP_SYS_PTRACE,
+so cloud-hypervisor restore would fail with:
+  Failed to create userfaultfd: Operation not permitted
+
+Fix one of:
+  sudo sysctl -w vm.unprivileged_userfaultfd=1
+  run make e2e as a user/process with CAP_SYS_PTRACE
+
+Set SKIP_UFFD_PREFLIGHT=1 to bypass this check.
+EOF
+    exit 2
 }
 
 wait_for_api() {
@@ -77,6 +115,7 @@ trap cleanup EXIT
 
 require_file KERNEL "$KERNEL"
 require_file DISK "$DISK"
+check_uffd_permissions
 
 mkdir -p "$WORKDIR"
 

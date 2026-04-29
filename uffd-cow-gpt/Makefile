@@ -19,7 +19,8 @@ help:
 		'  CH_FEATURES=kvm          cloud-hypervisor feature set' \
 		'  KERNEL=/path/to/vmlinux  required by make e2e' \
 		'  DISK=/path/to/rootfs     required by make e2e' \
-		'  SECCOMP=false            seccomp mode for e2e cloud-hypervisor processes'
+		'  SECCOMP=false            seccomp mode for e2e cloud-hypervisor processes' \
+		'  SKIP_UFFD_PREFLIGHT=0    skip e2e userfaultfd permission preflight when set to 1'
 
 .PHONY: fmt
 fmt:
@@ -70,4 +71,4 @@ e2e: build
 		echo '  KERNEL=/path/to/vmlinux DISK=/path/to/rootfs.img make e2e' >&2; \
 		exit 2; \
 	fi
-	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" ./scripts/template_restore_e2e.sh
+	KERNEL="$${KERNEL}" DISK="$${DISK}" SECCOMP="$${SECCOMP:-false}" SKIP_UFFD_PREFLIGHT="$${SKIP_UFFD_PREFLIGHT:-0}" ./scripts/template_restore_e2e.sh
