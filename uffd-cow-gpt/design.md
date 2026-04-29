@@ -168,6 +168,8 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
    - `template.manifest`
    - `memory-ranges`
 6. 运行 `template-memory-demo serve --template-dir ... --socket ...` 启动外部 template service。
+   service 同时写入 `template-metrics.log`，持续记录连接数、读缺页请求数、读错误数、
+   唯一页数、重复读取数和累计读取字节数。
 7. 使用修改后的 cloud-hypervisor restore：
 
 ```text
@@ -179,6 +181,11 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 ```text
 template UFFD restore: using template service socket
 ```
+
+9. 读取 template metrics 并输出复用性总结：
+   - `template_read_ratio`: restore 期间实际从 template 读取的唯一字节数 / template backend 总字节数。
+   - `deferred_reuse_ratio`: restore 后仍未被 fault 触碰的 template 字节比例。
+   - `duplicate_request_ratio`: 重复 page request / 总 read fault request。
 
 运行方式：
 

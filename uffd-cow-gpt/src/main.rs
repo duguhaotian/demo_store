@@ -1,10 +1,12 @@
+use std::collections::HashSet;
 use std::ffi::c_void;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::fd::RawFd;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use std::sync::{Arc, Mutex};
 
 use template_memory_demo::{
     Checkpoint, Client, Layer, OverlayBackend, Result, TemplatePageState, TemplateService,
@@ -34,7 +36,7 @@ fn run() -> Result<()> {
         }
         Some("serve") => {
             let opts = parse_serve_args(args.collect())?;
-            serve_template(&opts.template_dir, &opts.socket)
+            serve_template(&opts.template_dir, &opts.socket, &opts.metrics_log)
         }
         Some("demo") | None => run_demo(),
         Some(other) => Err(std::io::Error::other(format!(
@@ -145,6 +147,7 @@ struct ConvertArgs {
 struct ServeArgs {
     template_dir: PathBuf,
     socket: PathBuf,
+    metrics_log: PathBuf,
 }
 
 fn parse_convert_args(args: Vec<String>) -> Result<ConvertArgs> {
@@ -180,27 +183,35 @@ fn parse_convert_args(args: Vec<String>) -> Result<ConvertArgs> {
 fn parse_serve_args(args: Vec<String>) -> Result<ServeArgs> {
     let mut template_dir = None;
     let mut socket = None;
+    let mut metrics_log = None;
     let mut iter = args.into_iter();
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "--template-dir" => template_dir = iter.next().map(PathBuf::from),
             "--socket" => socket = iter.next().map(PathBuf::from),
+            "--metrics-log" => metrics_log = iter.next().map(PathBuf::from),
             _ => {
                 return Err(std::io::Error::other(format!("unknown serve arg '{arg}'")).into());
             }
         }
     }
 
+    let template_dir = template_dir.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "--template-dir is required",
+        )
+    })?;
+    let socket = socket.ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "--socket is required")
+    })?;
+    let metrics_log =
+        metrics_log.unwrap_or_else(|| template_dir.join("template-service.metrics.log"));
+
     Ok(ServeArgs {
-        template_dir: template_dir.ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "--template-dir is required",
-            )
-        })?,
-        socket: socket.ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "--socket is required")
-        })?,
+        template_dir,
+        socket,
+        metrics_log,
     })
 }
 
@@ -224,7 +235,7 @@ fn convert_snapshot_to_template(snapshot_dir: &Path, template_dir: &Path) -> Res
     Ok(())
 }
 
-fn serve_template(template_dir: &Path, socket: &Path) -> Result<()> {
+fn serve_template(template_dir: &Path, socket: &Path, metrics_log: &Path) -> Result<()> {
     let manifest = fs::read_to_string(template_dir.join("template.manifest"))?;
     if !manifest
         .lines()
@@ -244,20 +255,36 @@ fn serve_template(template_dir: &Path, socket: &Path) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
 
+    let backend_bytes = fs::metadata(template_dir.join("memory-ranges"))?.len();
+    let page_size = page_size()? as u64;
+    let state = Arc::new(Mutex::new(TemplateServiceState::create(
+        metrics_log,
+        backend_bytes,
+        page_size,
+        template_dir,
+        socket,
+    )?));
+
     let listener = UnixListener::bind(socket)?;
+    state.lock().unwrap().log_start()?;
     println!(
-        "template service listening on '{}' for template '{}'",
+        "template service listening on '{}' for template '{}' metrics_log='{}'",
         socket.display(),
-        template_dir.display()
+        template_dir.display(),
+        metrics_log.display()
     );
 
     for stream in listener.incoming() {
         let template_dir = template_dir.to_path_buf();
         match stream {
             Ok(mut stream) => {
+                state.lock().unwrap().record_connection()?;
                 let mut memory = File::open(template_dir.join("memory-ranges"))?;
+                let state = Arc::clone(&state);
                 std::thread::spawn(move || {
-                    let _ = serve_template_connection(&mut stream, &mut memory);
+                    if let Err(err) = serve_template_connection(&mut stream, &mut memory, state) {
+                        eprintln!("template service connection error: {err}");
+                    }
                 });
             }
             Err(err) => eprintln!("template service accept error: {err}"),
@@ -270,6 +297,7 @@ fn serve_template(template_dir: &Path, socket: &Path) -> Result<()> {
 fn serve_template_connection(
     stream: &mut std::os::unix::net::UnixStream,
     memory: &mut File,
+    state: Arc<Mutex<TemplateServiceState>>,
 ) -> std::io::Result<()> {
     loop {
         let mut request = [0u8; 12];
@@ -299,13 +327,162 @@ fn serve_template_connection(
                 stream.write_all(&0u32.to_le_bytes())?;
                 stream.write_all(&(len as u32).to_le_bytes())?;
                 stream.write_all(&page)?;
+                state.lock().unwrap().record_read(offset, len as u64)?;
             }
             Err(err) => {
                 stream.write_all(&1u32.to_le_bytes())?;
                 stream.write_all(&0u32.to_le_bytes())?;
+                state
+                    .lock()
+                    .unwrap()
+                    .record_read_error(offset, len as u64)?;
                 return Err(err);
             }
         }
+    }
+}
+
+struct TemplateServiceState {
+    metrics: TemplateServiceMetrics,
+    log: File,
+}
+
+impl TemplateServiceState {
+    fn create(
+        path: &Path,
+        backend_bytes: u64,
+        page_size: u64,
+        template_dir: &Path,
+        socket: &Path,
+    ) -> std::io::Result<Self> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let log = OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(path)?;
+        Ok(Self {
+            metrics: TemplateServiceMetrics::new(backend_bytes, page_size, template_dir, socket),
+            log,
+        })
+    }
+
+    fn log_start(&mut self) -> std::io::Result<()> {
+        writeln!(
+            self.log,
+            "start template_dir={} socket={} backend_bytes={} page_size={}",
+            self.metrics.template_dir.display(),
+            self.metrics.socket.display(),
+            self.metrics.backend_bytes,
+            self.metrics.page_size
+        )?;
+        self.write_summary()
+    }
+
+    fn record_connection(&mut self) -> std::io::Result<()> {
+        self.metrics.connections += 1;
+        writeln!(
+            self.log,
+            "connection_open connections={}",
+            self.metrics.connections
+        )?;
+        self.write_summary()
+    }
+
+    fn record_read(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
+        self.metrics.read_faults += 1;
+        self.metrics.bytes_read += len;
+        self.metrics.record_unique_pages(offset, len);
+        writeln!(
+            self.log,
+            "read_fault offset={offset} len={len} read_faults={} unique_pages={}",
+            self.metrics.read_faults,
+            self.metrics.unique_pages()
+        )?;
+        self.write_summary()
+    }
+
+    fn record_read_error(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
+        self.metrics.read_errors += 1;
+        writeln!(
+            self.log,
+            "read_error offset={offset} len={len} read_errors={}",
+            self.metrics.read_errors
+        )?;
+        self.write_summary()
+    }
+
+    fn write_summary(&mut self) -> std::io::Result<()> {
+        writeln!(
+            self.log,
+            "metrics backend_bytes={} page_size={} read_faults={} write_faults={} read_errors={} bytes_read={} unique_pages={} unique_bytes={} duplicate_reads={} connections={}",
+            self.metrics.backend_bytes,
+            self.metrics.page_size,
+            self.metrics.read_faults,
+            self.metrics.write_faults,
+            self.metrics.read_errors,
+            self.metrics.bytes_read,
+            self.metrics.unique_pages(),
+            self.metrics.unique_bytes(),
+            self.metrics.duplicate_reads(),
+            self.metrics.connections,
+        )?;
+        self.log.flush()
+    }
+}
+
+struct TemplateServiceMetrics {
+    backend_bytes: u64,
+    page_size: u64,
+    template_dir: PathBuf,
+    socket: PathBuf,
+    read_faults: u64,
+    write_faults: u64,
+    read_errors: u64,
+    bytes_read: u64,
+    connections: u64,
+    unique_pages_seen: HashSet<u64>,
+}
+
+impl TemplateServiceMetrics {
+    fn new(backend_bytes: u64, page_size: u64, template_dir: &Path, socket: &Path) -> Self {
+        Self {
+            backend_bytes,
+            page_size,
+            template_dir: template_dir.to_path_buf(),
+            socket: socket.to_path_buf(),
+            read_faults: 0,
+            write_faults: 0,
+            read_errors: 0,
+            bytes_read: 0,
+            connections: 0,
+            unique_pages_seen: HashSet::new(),
+        }
+    }
+
+    fn record_unique_pages(&mut self, offset: u64, len: u64) {
+        if len == 0 || self.page_size == 0 {
+            return;
+        }
+        let first_page = offset / self.page_size;
+        let last_page = (offset + len - 1) / self.page_size;
+        for page in first_page..=last_page {
+            self.unique_pages_seen.insert(page);
+        }
+    }
+
+    fn unique_pages(&self) -> u64 {
+        self.unique_pages_seen.len() as u64
+    }
+
+    fn unique_bytes(&self) -> u64 {
+        self.unique_pages() * self.page_size
+    }
+
+    fn duplicate_reads(&self) -> u64 {
+        self.read_faults.saturating_sub(self.unique_pages())
     }
 }
 
