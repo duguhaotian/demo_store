@@ -163,17 +163,18 @@ cloud-hypervisor 当前的 on-demand restore 在 `vmm/src/memory_manager.rs` 中
 1. 构建 root crate 的 template helper 和 cloud-hypervisor / ch-remote。
 2. 使用给定 `KERNEL`、`DISK` 启动 source sandbox。
 3. 通过 `ch-remote pause` 和 `ch-remote snapshot file://...` 生成快照。
-4. 运行 `template-memory-demo convert --snapshot-dir ... --template-dir ...`，把 `memory-ranges` 转换为 template 目录：
+4. 关闭 source cloud-hypervisor 进程，释放 disk image 的写锁。
+5. 运行 `template-memory-demo convert --snapshot-dir ... --template-dir ...`，把 `memory-ranges` 转换为 template 目录：
    - `template.manifest`
    - `memory-ranges`
-5. 运行 `template-memory-demo serve --template-dir ... --socket ...` 启动外部 template service。
-6. 使用修改后的 cloud-hypervisor restore：
+6. 运行 `template-memory-demo serve --template-dir ... --socket ...` 启动外部 template service。
+7. 使用修改后的 cloud-hypervisor restore：
 
 ```text
 --restore source_url=file://<snapshot>,memory_restore_mode=ondemand,template_socket=<socket>,resume=true
 ```
 
-7. 等待 restored VM API 可用，并检查 restore log 包含：
+8. 等待 restored VM API 可用，并检查 restore log 包含：
 
 ```text
 template UFFD restore: using template service socket

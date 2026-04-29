@@ -105,6 +105,27 @@ wait_for_api() {
     return 1
 }
 
+stop_source_sandbox() {
+    [[ -n "${SRC_PID:-}" ]] || return 0
+
+    echo "[4/7] stopping source sandbox to release disk lock"
+    "$CH_REMOTE" --api-socket "$SRC_API" shutdown-vmm >/dev/null 2>&1 || true
+    sleep 1
+
+    if kill -0 "$SRC_PID" >/dev/null 2>&1; then
+        kill "$SRC_PID" >/dev/null 2>&1 || true
+        sleep 1
+    fi
+
+    if kill -0 "$SRC_PID" >/dev/null 2>&1; then
+        echo "source sandbox did not exit after shutdown-vmm; forcing it down" >&2
+        kill -KILL "$SRC_PID" >/dev/null 2>&1 || true
+    fi
+
+    wait "$SRC_PID" >/dev/null 2>&1 || true
+    SRC_PID=""
+}
+
 cleanup() {
     set +e
     [[ -n "${SRC_PID:-}" ]] && kill "$SRC_PID" >/dev/null 2>&1
@@ -158,6 +179,7 @@ echo "[4/7] pausing and snapshotting source sandbox"
 "$CH_REMOTE" --api-socket "$SRC_API" snapshot "file://$SNAPSHOT_DIR"
 test -f "$SNAPSHOT_DIR/memory-ranges"
 test -f "$SNAPSHOT_DIR/state.json"
+stop_source_sandbox
 
 echo "[5/7] converting memory snapshot to template format"
 "$TEMPLATE_BIN" convert --snapshot-dir "$SNAPSHOT_DIR" --template-dir "$TEMPLATE_DIR"
