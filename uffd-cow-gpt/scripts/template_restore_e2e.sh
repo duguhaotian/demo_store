@@ -11,6 +11,7 @@ SKIP_UFFD_PREFLIGHT="${SKIP_UFFD_PREFLIGHT:-0}"
 CH_VERBOSE="${CH_VERBOSE:--v}"
 WAIT_FOR_CONFIRM="${WAIT_FOR_CONFIRM:-1}"
 METRICS_SETTLE_SECONDS="${METRICS_SETTLE_SECONDS:-2}"
+RESTORE_PAUSE_BEFORE_SUMMARY="${RESTORE_PAUSE_BEFORE_SUMMARY:-1}"
 
 CH_BIN="${CH_BIN:-$CH_DIR/target/debug/cloud-hypervisor}"
 CH_REMOTE="${CH_REMOTE:-$CH_DIR/target/debug/ch-remote}"
@@ -34,6 +35,7 @@ Optional environment:
   WAIT_FOR_CONFIRM=$WAIT_FOR_CONFIRM
   TEMPLATE_METRICS_LOG=${TEMPLATE_METRICS_LOG:-<workdir>/template-metrics.log}
   METRICS_SETTLE_SECONDS=$METRICS_SETTLE_SECONDS
+  RESTORE_PAUSE_BEFORE_SUMMARY=$RESTORE_PAUSE_BEFORE_SUMMARY
   CH_BIN=$CH_BIN
   CH_REMOTE=$CH_REMOTE
   TEMPLATE_BIN=$TEMPLATE_BIN
@@ -181,16 +183,15 @@ summarize_template_metrics() {
         return 1
     fi
 
-    local backend_bytes page_size read_faults write_faults read_errors bytes_read unique_pages unique_bytes duplicate_reads connections
+    local backend_bytes page_size page_requests request_errors bytes_served unique_pages unique_bytes duplicate_requests connections
     backend_bytes="$(metric_value "$metrics_line" backend_bytes)"
     page_size="$(metric_value "$metrics_line" page_size)"
-    read_faults="$(metric_value "$metrics_line" read_faults)"
-    write_faults="$(metric_value "$metrics_line" write_faults)"
-    read_errors="$(metric_value "$metrics_line" read_errors)"
-    bytes_read="$(metric_value "$metrics_line" bytes_read)"
+    page_requests="$(metric_value "$metrics_line" page_requests)"
+    request_errors="$(metric_value "$metrics_line" request_errors)"
+    bytes_served="$(metric_value "$metrics_line" bytes_served)"
     unique_pages="$(metric_value "$metrics_line" unique_pages)"
     unique_bytes="$(metric_value "$metrics_line" unique_bytes)"
-    duplicate_reads="$(metric_value "$metrics_line" duplicate_reads)"
+    duplicate_requests="$(metric_value "$metrics_line" duplicate_requests)"
     connections="$(metric_value "$metrics_line" connections)"
 
     local deferred_bytes
@@ -204,11 +205,66 @@ summarize_template_metrics() {
     echo "template memory reuse summary:"
     echo "  metrics_log=$METRICS_LOG"
     echo "  backend_bytes=$backend_bytes page_size=$page_size connections=$connections"
-    echo "  read_faults=$read_faults write_faults=$write_faults read_errors=$read_errors duplicate_reads=$duplicate_reads"
-    echo "  bytes_read=$bytes_read unique_pages=$unique_pages unique_bytes=$unique_bytes"
+    echo "  page_requests=$page_requests request_errors=$request_errors duplicate_requests=$duplicate_requests"
+    echo "  bytes_served=$bytes_served unique_pages=$unique_pages unique_bytes=$unique_bytes"
     echo "  template_read_ratio=$(pct "$unique_bytes" "$backend_bytes")%"
     echo "  deferred_reuse_ratio=$(pct "$deferred_bytes" "$backend_bytes")%"
-    echo "  duplicate_request_ratio=$(pct "$duplicate_reads" "$read_faults")%"
+    echo "  duplicate_request_ratio=$(pct "$duplicate_requests" "$page_requests")%"
+}
+
+summarize_uffd_faults() {
+    local fault_offsets
+    fault_offsets="$(grep 'template UFFD fault:' "$RESTORE_LOG" | sed -n 's/.*backend_offset=\([0-9][0-9]*\).*/\1/p' || true)"
+    if [[ -z "$fault_offsets" ]]; then
+        echo "template UFFD fault summary missing in $RESTORE_LOG" >&2
+        return 1
+    fi
+
+    local fault_count unique_fault_offsets duplicate_faults
+    fault_count="$(printf '%s\n' "$fault_offsets" | sed '/^$/d' | wc -l)"
+    unique_fault_offsets="$(printf '%s\n' "$fault_offsets" | sed '/^$/d' | sort -n | uniq | wc -l)"
+    duplicate_faults=$((fault_count - unique_fault_offsets))
+
+    echo
+    echo "cloud-hypervisor UFFD fault summary:"
+    echo "  restore_log=$RESTORE_LOG"
+    echo "  faults=$fault_count unique_backend_offsets=$unique_fault_offsets duplicate_faults=$duplicate_faults"
+    echo "  duplicate_fault_ratio=$(pct "$duplicate_faults" "$fault_count")%"
+    echo "  top repeated fault offsets:"
+    printf '%s\n' "$fault_offsets" \
+        | sed '/^$/d' \
+        | sort -n \
+        | uniq -c \
+        | sort -nr \
+        | head -n 10 \
+        | awk '{ printf "    count=%s offset=%s offset_hex=0x%x\n", $1, $2, $2 }'
+}
+
+summarize_template_request_offsets() {
+    local request_offsets
+    request_offsets="$(sed -n 's/^page_request offset=\([0-9][0-9]*\).*/\1/p' "$METRICS_LOG" || true)"
+    if [[ -z "$request_offsets" ]]; then
+        echo "template page request offset summary missing in $METRICS_LOG" >&2
+        return 1
+    fi
+
+    echo
+    echo "template service request offset summary:"
+    echo "  top repeated request offsets:"
+    printf '%s\n' "$request_offsets" \
+        | sed '/^$/d' \
+        | sort -n \
+        | uniq -c \
+        | sort -nr \
+        | head -n 10 \
+        | awk '{ printf "    count=%s offset=%s offset_hex=0x%x\n", $1, $2, $2 }'
+}
+
+pause_restored_vm_for_summary() {
+    [[ "$RESTORE_PAUSE_BEFORE_SUMMARY" == "1" ]] || return 0
+
+    echo "[7/7] pausing restored sandbox before metrics summary"
+    "$CH_REMOTE" --api-socket "$RESTORE_API" pause >/dev/null 2>&1 || true
 }
 
 require_file KERNEL "$KERNEL"
@@ -299,7 +355,11 @@ if ! grep -q "template UFFD restore: using template service socket" "$RESTORE_LO
 fi
 
 sleep "$METRICS_SETTLE_SECONDS"
+pause_restored_vm_for_summary
+sleep 1
+summarize_uffd_faults
 summarize_template_metrics
+summarize_template_request_offsets
 echo "template restore e2e passed"
 echo "workdir: $WORKDIR"
 wait_for_user_confirmation

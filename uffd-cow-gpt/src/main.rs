@@ -327,7 +327,10 @@ fn serve_template_connection(
                 stream.write_all(&0u32.to_le_bytes())?;
                 stream.write_all(&(len as u32).to_le_bytes())?;
                 stream.write_all(&page)?;
-                state.lock().unwrap().record_read(offset, len as u64)?;
+                state
+                    .lock()
+                    .unwrap()
+                    .record_page_request(offset, len as u64)?;
             }
             Err(err) => {
                 stream.write_all(&1u32.to_le_bytes())?;
@@ -335,7 +338,7 @@ fn serve_template_connection(
                 state
                     .lock()
                     .unwrap()
-                    .record_read_error(offset, len as u64)?;
+                    .record_page_request_error(offset, len as u64)?;
                 return Err(err);
             }
         }
@@ -391,25 +394,25 @@ impl TemplateServiceState {
         self.write_summary()
     }
 
-    fn record_read(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
-        self.metrics.read_faults += 1;
-        self.metrics.bytes_read += len;
+    fn record_page_request(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
+        self.metrics.page_requests += 1;
+        self.metrics.bytes_served += len;
         self.metrics.record_unique_pages(offset, len);
         writeln!(
             self.log,
-            "read_fault offset={offset} len={len} read_faults={} unique_pages={}",
-            self.metrics.read_faults,
+            "page_request offset={offset} offset_hex={offset:#x} len={len} page_requests={} unique_pages={}",
+            self.metrics.page_requests,
             self.metrics.unique_pages()
         )?;
         self.write_summary()
     }
 
-    fn record_read_error(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
-        self.metrics.read_errors += 1;
+    fn record_page_request_error(&mut self, offset: u64, len: u64) -> std::io::Result<()> {
+        self.metrics.request_errors += 1;
         writeln!(
             self.log,
-            "read_error offset={offset} len={len} read_errors={}",
-            self.metrics.read_errors
+            "page_request_error offset={offset} offset_hex={offset:#x} len={len} request_errors={}",
+            self.metrics.request_errors
         )?;
         self.write_summary()
     }
@@ -417,16 +420,15 @@ impl TemplateServiceState {
     fn write_summary(&mut self) -> std::io::Result<()> {
         writeln!(
             self.log,
-            "metrics backend_bytes={} page_size={} read_faults={} write_faults={} read_errors={} bytes_read={} unique_pages={} unique_bytes={} duplicate_reads={} connections={}",
+            "metrics backend_bytes={} page_size={} page_requests={} request_errors={} bytes_served={} unique_pages={} unique_bytes={} duplicate_requests={} connections={}",
             self.metrics.backend_bytes,
             self.metrics.page_size,
-            self.metrics.read_faults,
-            self.metrics.write_faults,
-            self.metrics.read_errors,
-            self.metrics.bytes_read,
+            self.metrics.page_requests,
+            self.metrics.request_errors,
+            self.metrics.bytes_served,
             self.metrics.unique_pages(),
             self.metrics.unique_bytes(),
-            self.metrics.duplicate_reads(),
+            self.metrics.duplicate_requests(),
             self.metrics.connections,
         )?;
         self.log.flush()
@@ -438,10 +440,9 @@ struct TemplateServiceMetrics {
     page_size: u64,
     template_dir: PathBuf,
     socket: PathBuf,
-    read_faults: u64,
-    write_faults: u64,
-    read_errors: u64,
-    bytes_read: u64,
+    page_requests: u64,
+    request_errors: u64,
+    bytes_served: u64,
     connections: u64,
     unique_pages_seen: HashSet<u64>,
 }
@@ -453,10 +454,9 @@ impl TemplateServiceMetrics {
             page_size,
             template_dir: template_dir.to_path_buf(),
             socket: socket.to_path_buf(),
-            read_faults: 0,
-            write_faults: 0,
-            read_errors: 0,
-            bytes_read: 0,
+            page_requests: 0,
+            request_errors: 0,
+            bytes_served: 0,
             connections: 0,
             unique_pages_seen: HashSet::new(),
         }
@@ -481,8 +481,8 @@ impl TemplateServiceMetrics {
         self.unique_pages() * self.page_size
     }
 
-    fn duplicate_reads(&self) -> u64 {
-        self.read_faults.saturating_sub(self.unique_pages())
+    fn duplicate_requests(&self) -> u64 {
+        self.page_requests.saturating_sub(self.unique_pages())
     }
 }
 

@@ -325,6 +325,15 @@ pub(crate) fn handler_loop(
             ))
         })?;
         let page_index = fault.page_index as usize;
+        info!(
+            "template UFFD fault: addr={:#x} page_addr={:#x} page_index={} backend_offset={} backend_offset_hex={:#x} page_size={}",
+            fault_addr,
+            fault.page_addr,
+            fault.page_index,
+            fault.backend_offset,
+            fault.backend_offset,
+            fault.page_size
+        );
 
         match backend.pages[page_index].state.compare_exchange(
             STATE_UNLOADED,
