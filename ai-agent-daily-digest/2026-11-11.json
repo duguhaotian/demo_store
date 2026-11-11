@@ -1,0 +1,191 @@
+{
+  "date": "2026-11-11",
+  "window": {
+    "start": "2026-11-10T01:00:00Z",
+    "end": "2026-11-11T01:03:25Z"
+  },
+  "ranking_formula": "likes + 2*bookmarks + 3*reposts + 2*quotes + impressions/1000",
+  "generated_at": "2026-11-11T01:03:25Z",
+  "source": "X News + search_posts_all + get_posts_by_ids",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "OpenAI：ChatGPT 企业档案 + Business Agent 进入 Beta",
+      "heat_score": 39480,
+      "likes": 11029,
+      "bookmarks": 11138,
+      "reposts": 799,
+      "quotes": 751,
+      "impressions": 2275868,
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/OpenAI/status/2120216592395174382",
+      "news_url": "https://x.com/i/trending/2119830228843319747",
+      "created_at": "2026-11-10T18:06:42.000Z"
+    },
+    {
+      "rank": 2,
+      "title": "Meta Muse Ember：专为智能体高频任务打造的最小模型",
+      "heat_score": 15088,
+      "likes": 9882,
+      "bookmarks": 997,
+      "reposts": 747,
+      "quotes": 220,
+      "impressions": 531417,
+      "author": "Mark Zuckerberg",
+      "handle": "finkd",
+      "post_url": "https://x.com/finkd/status/2119851180948152590",
+      "news_url": "https://x.com/i/trending/2119854307906662448",
+      "created_at": "2026-11-09T17:54:41.000Z"
+    },
+    {
+      "rank": 3,
+      "title": "Greg Isenberg：用 AI Agent 批量生产广告的完整教程",
+      "heat_score": 11557,
+      "likes": 1990,
+      "bookmarks": 4449,
+      "reposts": 126,
+      "quotes": 34,
+      "impressions": 223010,
+      "author": "GREG ISENBERG",
+      "handle": "gregisenberg",
+      "post_url": "https://x.com/gregisenberg/status/2119865330210140339",
+      "news_url": "https://x.com/i/trending/2119970228033712132",
+      "created_at": "2026-11-09T18:50:54.000Z"
+    },
+    {
+      "rank": 4,
+      "title": "Nuance Labs Emma：能边听边反应的实时 AI 角色",
+      "heat_score": 10325,
+      "likes": 2461,
+      "bookmarks": 1712,
+      "reposts": 245,
+      "quotes": 257,
+      "impressions": 3191162,
+      "author": "Fangchang Ma",
+      "handle": "fangchangma",
+      "post_url": "https://x.com/fangchangma/status/2119852363494371466",
+      "news_url": "https://x.com/i/trending/2119860385872330834",
+      "created_at": "2026-11-09T17:59:23.000Z"
+    },
+    {
+      "rank": 5,
+      "title": "Kokotajlo：智能爆炸或提前到 2027",
+      "heat_score": 9196,
+      "likes": 3064,
+      "bookmarks": 1940,
+      "reposts": 484,
+      "quotes": 171,
+      "impressions": 458293,
+      "author": "Daniel Kokotajlo",
+      "handle": "DKokotajlo",
+      "post_url": "https://x.com/DKokotajlo/status/2120204075803500595",
+      "news_url": "https://x.com/i/trending/2120212183736812006",
+      "blog_url": "https://blog.aifutures.org/p/q35-timelines-update-looks-like-the",
+      "created_at": "2026-11-10T17:16:57.000Z"
+    },
+    {
+      "rank": 6,
+      "title": "Apple 计划把 Siri 做成可自主完成任务的 AI Agent",
+      "heat_score": 7835,
+      "likes": 5659,
+      "bookmarks": 237,
+      "reposts": 320,
+      "quotes": 173,
+      "impressions": 395775,
+      "author": "Watcher.Guru",
+      "handle": "WatcherGuru",
+      "post_url": "https://x.com/WatcherGuru/status/2119812985300644062",
+      "news_url": "https://x.com/i/trending/2119462203690729561",
+      "created_at": "2026-11-09T15:22:54.000Z"
+    },
+    {
+      "rank": 7,
+      "title": "Paradigm + Clover Agent：全球首所 AI 原生大学",
+      "heat_score": 3303,
+      "likes": 696,
+      "bookmarks": 268,
+      "reposts": 137,
+      "quotes": 157,
+      "impressions": 1346112,
+      "author": "Scott Fan",
+      "handle": "thescottfan",
+      "post_url": "https://x.com/thescottfan/status/2119863088795001001",
+      "news_url": "https://x.com/i/trending/2120002006823948288",
+      "created_at": "2026-11-09T18:42:00.000Z"
+    },
+    {
+      "rank": 8,
+      "title": "Google Cloud 推出面向医疗流程的 Gemini Agent",
+      "heat_score": 2713,
+      "likes": 1157,
+      "bookmarks": 360,
+      "reposts": 143,
+      "quotes": 50,
+      "impressions": 307464,
+      "author": "Google Cloud",
+      "handle": "googlecloud",
+      "post_url": "https://x.com/googlecloud/status/2120141472636789026",
+      "news_url": "https://x.com/i/trending/2120190635420340254",
+      "created_at": "2026-11-10T13:08:12.000Z"
+    },
+    {
+      "rank": 9,
+      "title": "Google Antigravity /swarm：一条指令拉起多智能体团队",
+      "heat_score": 2671,
+      "likes": 1302,
+      "bookmarks": 484,
+      "reposts": 89,
+      "quotes": 40,
+      "impressions": 54451,
+      "author": "Google Antigravity",
+      "handle": "antigravity",
+      "post_url": "https://x.com/antigravity/status/2120279327589773639",
+      "news_url": "https://x.com/i/trending/2120310408443773165",
+      "created_at": "2026-11-10T22:15:59.000Z"
+    },
+    {
+      "rank": 10,
+      "title": "Vorflux 2.0 AutoBots：住在 Slack 里的 24×7 工程同事",
+      "heat_score": 1846,
+      "likes": 533,
+      "bookmarks": 229,
+      "reposts": 103,
+      "quotes": 76,
+      "impressions": 393730,
+      "author": "Prasanna S",
+      "handle": "myprasanna",
+      "post_url": "https://x.com/myprasanna/status/2120205408371634624",
+      "news_url": "https://x.com/i/trending/2120255084902875351",
+      "created_at": "2026-11-10T17:22:15.000Z"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Matt Huang：Swarm riders（集群骑手）",
+      "handle": "matthuang",
+      "post_url": "https://x.com/matthuang/status/2120209025099043286",
+      "news_url": "https://x.com/i/trending/2120236301253562825",
+      "likes": 505,
+      "bookmarks": 435
+    },
+    {
+      "title": "WorkflowArena 多智能体编排基准",
+      "handle": "EinsiaAI",
+      "post_url": "https://x.com/EinsiaAI/status/2120162063905681632",
+      "paper_url": "https://arxiv.org/pdf/2611.12856",
+      "github_url": "https://github.com/Einsia/WorkflowArena"
+    },
+    {
+      "title": "10 MCP Servers That Give AI Agents Data Google Can’t (2026)",
+      "handle": "unicodeveloper",
+      "post_url": "https://x.com/unicodeveloper/status/2120193494333452611"
+    },
+    {
+      "title": "Teamily AI：Agent 作为群聊队友",
+      "handle": "Teamily_AI",
+      "post_url": "https://x.com/Teamily_AI/status/2120162586792763484",
+      "news_url": "https://x.com/i/trending/2120307521613447554"
+    }
+  ]
+}
