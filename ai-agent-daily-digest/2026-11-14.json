@@ -1,0 +1,161 @@
+{
+  "date": "2026-11-14",
+  "window": {
+    "start": "2026-11-13T01:00:00Z",
+    "end": "2026-11-14T01:04:52Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-14T01:04:52Z",
+  "source": "X News search_news (24h) + public blog cross-check",
+  "metrics_note": "search_posts_all and get_posts_by_ids returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "OpenAI：ChatGPT Wallet，dots 代购但每笔要生物识别",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-14T00:37:35.000Z",
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/i/status/2121258308795564250",
+      "news_url": "https://x.com/i/trending/2121260659975573668",
+      "blog_url": "https://openai.com/index/introducing-chatgpt-wallet/",
+      "news_id": "2121260659975573668"
+    },
+    {
+      "rank": 2,
+      "title": "Sierra：Personal Agent Protocol（Poppy）1.0",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-13T23:07:26.000Z",
+      "author": "Sierra",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121296788766519431",
+      "news_url": "https://x.com/i/trending/2121330558781554819",
+      "blog_url": "https://sierra.ai/blog/releasing-poppy",
+      "news_id": "2121330558781554819"
+    },
+    {
+      "rank": 3,
+      "title": "Perplexity：Teammates 进入 Mac App（Max）",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-13T20:35:21.000Z",
+      "author": "Perplexity",
+      "handle": "perplexity_ai",
+      "post_url": "https://x.com/i/status/2121294533879267683",
+      "news_url": "https://x.com/i/trending/2121339383794339962",
+      "blog_url": "https://www.perplexity.ai/changelog/teammates-fully-local-computer-on-mac-and-voice-mode",
+      "news_id": "2121339383794339962"
+    },
+    {
+      "rank": 4,
+      "title": "Pangram：求职筛选题撞上成批 AI Agent 套话",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-14T01:04:46.000Z",
+      "author": "Max Spero",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121292278362771724",
+      "news_url": "https://x.com/i/trending/2121407646096085202",
+      "blog_url": "https://www.pangram.com/use-cases/recruiters",
+      "news_id": "2121407646096085202"
+    },
+    {
+      "rank": 5,
+      "title": "SUS-Bench：25 万人跟 AI 玩黑手党，测社交智力",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-13T22:26:25.000Z",
+      "author": "Iman",
+      "handle": "imodarressi",
+      "post_url": "https://x.com/imodarressi/status/2121280505786110176",
+      "news_url": "https://x.com/i/trending/2121367664450732253",
+      "blog_url": "https://peoplemakethings.com/sus",
+      "news_id": "2121367664450732253"
+    },
+    {
+      "rank": 6,
+      "title": "Reason Machines：低成本编码 Agent harness（YC F26）",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-14T00:37:52.000Z",
+      "author": "Reason Machines",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121265353867284498",
+      "news_url": "https://x.com/i/trending/2121400676047839508",
+      "blog_url": "https://www.ycombinator.com/launches/XUY-reason-the-most-efficient-agent-harness",
+      "news_id": "2121400676047839508"
+    },
+    {
+      "rank": 7,
+      "title": "Andrew D’Souza：2026 是 Agent 年，2027 是 Principal 年",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-14T00:18:55.000Z",
+      "author": "Andrew D'Souza",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121305381515456998",
+      "news_url": "https://x.com/i/trending/2121339388663930952",
+      "blog_url": "https://www.boardy.ai/principals",
+      "news_id": "2121339388663930952"
+    },
+    {
+      "rank": 8,
+      "title": "Deepnote：Agent Initiative Benchmark，GPT-6 Astra 第一",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-13T18:48:57.000Z",
+      "author": "Deepnote Research",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121256499552915586",
+      "news_url": "https://x.com/i/trending/2121270359353688214",
+      "blog_url": "https://deepnote.com/research/benchmark",
+      "news_id": "2121270359353688214"
+    },
+    {
+      "rank": 9,
+      "title": "Meta Muse：美国付费用户可让 Agent 打外呼",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-13T20:23:01.000Z",
+      "author": "Alexandr Wang",
+      "handle": "alexandr_wang",
+      "post_url": "https://x.com/i/status/2120930586827391350",
+      "news_url": "https://x.com/i/trending/2121050817398718819",
+      "blog_url": "https://techcrunch.com/2026/11/12/muse-can-now-place-calls-to-u-s-businesses-if-you-pay/",
+      "news_id": "2121050817398718819"
+    },
+    {
+      "rank": 10,
+      "title": "Greg Isenberg：把公司做成「共享大脑」给 Agent 当同事",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-13T22:36:54.000Z",
+      "author": "Greg Isenberg",
+      "handle": "gregisenberg",
+      "post_url": "https://x.com/gregisenberg/status/2121331227009364340",
+      "news_url": "https://x.com/i/trending/2121370273052061774",
+      "blog_url": null,
+      "news_id": "2121370273052061774"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Fish Audio Fish Agent",
+      "news_url": "https://x.com/i/trending/2121073470079729999",
+      "blog_url": "https://fish.audio/agents/"
+    },
+    {
+      "title": "开发者吐槽编码 Agent 的等待与上下文切换",
+      "news_url": "https://x.com/i/trending/2121309634673901615"
+    },
+    {
+      "title": "Qorqbot 本机助手发布",
+      "news_url": "https://x.com/i/trending/2121372907603456086"
+    },
+    {
+      "title": "AWS Emulator（持续发酵）",
+      "news_url": "https://x.com/i/trending/2121260657337307165",
+      "blog_url": "https://www.aboutamazon.com/news/aws/how-autonomous-ai-agents-built-aws-emulator"
+    },
+    {
+      "title": "United Airlines 禁止 AI Agent 订票",
+      "news_url": "https://x.com/i/trending/2120592095043866981"
+    },
+    {
+      "title": "OpenAI Dots 自定义指令",
+      "news_url": "https://x.com/i/trending/2120979883224682498"
+    }
+  ]
+}
