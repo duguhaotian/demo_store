@@ -1,0 +1,167 @@
+{
+  "date": "2026-11-15",
+  "window": {
+    "start": "2026-11-14T01:00:00Z",
+    "end": "2026-11-15T01:02:35Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-15T01:25:00Z",
+  "source": "X News search_news (~30h) + public blog cross-check",
+  "metrics_note": "search_posts_all and get_posts_by_ids returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents as coworkers (Grok Bot teammates, Claude Code coordinator, meeting bots) plus LangChain Series C and FBI ARTEX.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Lauren Tan：把 Agent 当同事，一个月 1.1 万 PR、回滚 0.5%",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-15T00:31:37.000Z",
+      "author": "Lauren Tan",
+      "handle": "poteto",
+      "post_url": "https://x.com/i/status/2121673563489140863",
+      "news_url": "https://x.com/i/trending/2121761513660661939",
+      "blog_url": "https://agents.conffab.com/aie-code-26/live/keynotes/sessions/1794420600.md",
+      "news_id": "2121761513660661939"
+    },
+    {
+      "rank": 2,
+      "title": "LangChain：3 亿美元 C 轮，估值 30 亿美元",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-14T05:15:49.000Z",
+      "author": "Harrison Chase",
+      "handle": "hwchase17",
+      "post_url": "https://x.com/i/status/2121279222912352574",
+      "news_url": "https://x.com/i/trending/2121289068323713238",
+      "blog_url": "https://www.langchain.com/blog/series-c",
+      "news_id": "2121289068323713238"
+    },
+    {
+      "rank": 3,
+      "title": "Harrison Chase：Goal Engineering，按任务而不是按客户组 Agent",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-14T23:59:18.000Z",
+      "author": "Harrison Chase",
+      "handle": "hwchase17",
+      "post_url": "https://x.com/hwchase17/status/2121671447810888185",
+      "news_url": "https://x.com/i/trending/2121704172667949295",
+      "blog_url": null,
+      "news_id": "2121704172667949295"
+    },
+    {
+      "rank": 4,
+      "title": "Google Chrome：Modern Web Guidance 1.0，给编码 Agent 的现代 Web 技能包",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-14T21:11:28.000Z",
+      "author": "Chrome for Developers",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121647708524224597",
+      "news_url": "https://x.com/i/trending/2121711317547417946",
+      "blog_url": "https://developer.chrome.com/blog/modern-web-guidance-v1",
+      "news_id": "2121711317547417946"
+    },
+    {
+      "rank": 5,
+      "title": "Claude Code Projects：主动协调员 + /btw / /fork",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-15T00:05:54.000Z",
+      "author": "Claude Developers",
+      "handle": "ClaudeDevs",
+      "post_url": "https://x.com/ClaudeDevs/status/2121375309287301360",
+      "news_url": "https://x.com/i/trending/2121592703955730662",
+      "blog_url": null,
+      "news_id": "2121592703955730662"
+    },
+    {
+      "rank": 6,
+      "title": "Bland：Tofu-1 全双工语音 Agent，专打嘈杂电话",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-14T04:21:47.000Z",
+      "author": "Isaiah Granet",
+      "handle": "zaygranet",
+      "post_url": "https://x.com/usebland/status/2121302984802152941",
+      "news_url": "https://x.com/i/trending/2121321520609853775",
+      "blog_url": "https://www.bland.ai/speech-to-speech",
+      "news_id": "2121321520609853775"
+    },
+    {
+      "rank": 7,
+      "title": "FBI FLASH：ARTEX 自主渗透 Agent 把攻击压到 3 小时内",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-14T21:11:27.000Z",
+      "author": "FBI / IC3",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121317398305186287",
+      "news_url": "https://x.com/i/trending/2121398302449213895",
+      "blog_url": "https://www.ic3.gov/CSA/2026/261113.pdf",
+      "news_id": "2121398302449213895"
+    },
+    {
+      "rank": 8,
+      "title": "Obsidian Skills：教 Agent 写 wikilink、Bases 和 Canvas",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-14T22:28:29.000Z",
+      "author": "Steph Ango",
+      "handle": "kepano",
+      "post_url": "https://x.com/i/status/2121671411119059034",
+      "news_url": "https://x.com/i/trending/2121730528424423528",
+      "blog_url": "https://github.com/kepano/obsidian-skills/",
+      "news_id": "2121730528424423528"
+    },
+    {
+      "rank": 9,
+      "title": "Grok Bot：进 Zoom / Meet / Teams 当会议队友",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-14T11:18:07.000Z",
+      "author": "Grok Bot",
+      "handle": "bot",
+      "post_url": "https://x.com/i/status/2121320089920430181",
+      "news_url": "https://x.com/i/trending/2121562124446994576",
+      "blog_url": "https://docs.x.ai/grok-bot/meetings",
+      "news_id": "2121562124446994576"
+    },
+    {
+      "rank": 10,
+      "title": "Anthropic：Claude Meetings，Agent 作为 Google Meet 可见参与者",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-14T19:35:44.000Z",
+      "author": "Anthropic",
+      "handle": "AnthropicAI",
+      "post_url": "https://x.com/i/status/2120973994191094179",
+      "news_url": "https://x.com/i/trending/2121650747511013842",
+      "blog_url": "https://claude.com/resources/articles/claude-meetings",
+      "news_id": "2121650747511013842"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "OpenAI ChatGPT Wallet（持续发酵）",
+      "news_url": "https://x.com/i/trending/2121260659975573668",
+      "blog_url": "https://openai.com/index/introducing-chatgpt-wallet/"
+    },
+    {
+      "title": "Pangram 求职 Agent 套话（持续发酵）",
+      "news_url": "https://x.com/i/trending/2121529411296235958"
+    },
+    {
+      "title": "Reason Machines（持续发酵）",
+      "news_url": "https://x.com/i/trending/2121400676047839508",
+      "blog_url": "https://www.ycombinator.com/launches/XUY-reason-the-most-efficient-agent-harness"
+    },
+    {
+      "title": "Boardy Principals（持续发酵）",
+      "news_url": "https://x.com/i/trending/2121339388663930952",
+      "blog_url": "https://www.boardy.ai/principals"
+    },
+    {
+      "title": "Claude Duet 候补清空",
+      "news_url": "https://x.com/i/trending/2121351012342440337"
+    },
+    {
+      "title": "Grok Bot harness 用量 +7% / 常规任务最多 +15%",
+      "news_url": "https://x.com/i/trending/2121632801263169581"
+    },
+    {
+      "title": "开发者警告「快修」提示会污染 Agent 代码库",
+      "news_url": "https://x.com/i/trending/2121701680769016207"
+    }
+  ]
+}
