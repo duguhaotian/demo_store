@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-16",
+  "window": {
+    "start": "2026-11-15T01:00:00Z",
+    "end": "2026-11-16T01:02:53Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-16T01:20:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "search_posts_all and get_posts_by_ids returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents doing paid work (Remote Labor Index 41.3%) plus research-agent science blog, Claude Code Mode, and leftover ARTEX still climbing.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Scale Labs Remote Labor Index：Fable 5.2 完成 41.3% 真实自由职业项目",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-15T17:36:01.000Z",
+      "author": "Scale Labs / CAIS",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121929485951836640",
+      "news_url": "https://x.com/i/trending/2122018979606614183",
+      "blog_url": "https://labs.scale.com/leaderboard/rli",
+      "news_id": "2122018979606614183"
+    },
+    {
+      "rank": 2,
+      "title": "OpenAI：GPT-6 Astra 与物理学家给出格点标准模型候选定义",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-16T00:47:34.000Z",
+      "author": "Nathaniel Craig / OpenAI",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122123437141553630",
+      "news_url": "https://x.com/i/trending/2122127999416119577",
+      "blog_url": "https://openai.com/index/step-toward-defining-the-standard-model/",
+      "news_id": "2122127999416119577"
+    },
+    {
+      "rank": 3,
+      "title": "Claude Code Code Mode：用 JavaScript 批处理工具调用",
+      "cluster_unique_posts": 9,
+      "news_updated_at": "2026-11-15T15:39:01.000Z",
+      "author": "Anthropic / Claude Code",
+      "handle": "ClaudeDevs",
+      "post_url": "https://x.com/i/status/2121652838447169783",
+      "news_url": "https://x.com/i/trending/2121592703955730662",
+      "blog_url": "https://code.claude.com/docs/en/code-mode",
+      "news_id": "2121592703955730662"
+    },
+    {
+      "rank": 4,
+      "title": "FBI FLASH：ARTEX 自主渗透 Agent（持续发酵，独立帖 7→9）",
+      "cluster_unique_posts": 9,
+      "news_updated_at": "2026-11-15T22:24:39.000Z",
+      "author": "FBI / IC3",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122034446178140201",
+      "news_url": "https://x.com/i/trending/2121398302449213895",
+      "blog_url": "https://www.ic3.gov/CSA/2026/261113.pdf",
+      "news_id": "2121398302449213895"
+    },
+    {
+      "rank": 5,
+      "title": "Google Gemini 4 Hydrogen + Antigravity Orchestrator：给编码 Agent 的快模型",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-16T00:01:34.000Z",
+      "author": "Google DeepMind",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122026878387290301",
+      "news_url": "https://x.com/i/trending/2122116504334303430",
+      "blog_url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+      "news_id": "2122116504334303430"
+    },
+    {
+      "rank": 6,
+      "title": "Epic AI MegaJam 2026：四天、不限数量 Agent，交 1600+ 个可玩游戏",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-16T00:12:10.000Z",
+      "author": "Epic Games",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2121613827464696299",
+      "news_url": "https://x.com/i/trending/2121720759559365009",
+      "blog_url": "https://itch.io/jam/2026-epic-ai-megajam",
+      "news_id": "2121720759559365009"
+    },
+    {
+      "rank": 7,
+      "title": "Grok Bot：用户把配额花光后，改组多 Agent 团队当劳动力",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-15T20:26:52.000Z",
+      "author": "Grok Bot community",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122028210267488471",
+      "news_url": "https://x.com/i/trending/2122061886573445444",
+      "blog_url": "https://github.com/smfworks/grok-bot-templates",
+      "news_id": "2122061886573445444"
+    },
+    {
+      "rank": 8,
+      "title": "T3 Code：Agent 现场改自己的 IDE 主题",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-15T20:15:07.000Z",
+      "author": "Theo Browne",
+      "handle": "t3dotgg",
+      "post_url": "https://x.com/i/status/2121724781376786584",
+      "news_url": "https://x.com/i/trending/2121834986315595881",
+      "blog_url": "https://github.com/pingdotgg/t3code/pull/35247",
+      "news_id": "2121834986315595881"
+    },
+    {
+      "rank": 9,
+      "title": "Nicolas Bustamante：SaaS 应做成 MCP Server，把对话交给 Agent",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-15T15:31:45.000Z",
+      "author": "Nicolas Bustamante",
+      "handle": "nicbstme",
+      "post_url": "https://x.com/i/status/2121690979904446885",
+      "news_url": "https://x.com/i/trending/2121799429653213500",
+      "blog_url": "https://www.linkedin.com/pulse/every-saas-now-api-whether-like-nicolas-bustamante-gq44c",
+      "news_id": "2121799429653213500"
+    },
+    {
+      "rank": 10,
+      "title": "Dario Amodei：入门白领岗位一到五年内可能被 Agent 削掉一半",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-15T17:36:16.000Z",
+      "author": "Dario Amodei",
+      "handle": "DarioAmodei",
+      "post_url": "https://x.com/i/status/2121858786742738984",
+      "news_url": "https://x.com/i/trending/2121941105608360258",
+      "blog_url": "https://www.businessinsider.com/google-deepmind-anthropic-ceos-ai-junior-roles-hiring-davos-2026-1",
+      "news_id": "2121941105608360258"
+    }
+  ],
+  "honorable_mentions": [
+    "Lauren Tan Grok Bot teammates (day-2 leftover, unique posts 10→6)",
+    "Harrison Chase Goal Engineering",
+    "Claude Code Projects coordinator / custom themes",
+    "Grok Bot meetings / Claude Meetings",
+    "LangChain Series C / Chrome Modern Web Guidance / Bland Tofu-1 / Obsidian Skills",
+    "ChatGPT Wallet (day-3 leftover)",
+    "Vibe Coding verifier-first discussion",
+    "Claude Fable 5.2 free-trial countdown",
+    "TermiX / Agentics Credit / Motes NFT agents"
+  ]
+}
