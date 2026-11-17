@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-17",
+  "window": {
+    "start": "2026-11-16T01:00:00Z",
+    "end": "2026-11-17T01:03:22Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-17T01:20:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "search_posts_all, get_news-by-id and get_posts_by_ids returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents leaving the chat box: Linear drops default second human review, OpenAI puts computer-use agents in hospitals, the Fed warns they can empty deposits in minutes, and GTIG / Amazon / California document autonomous offensive agents.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Linear：Agent 先审 PR 后，10 月 53% 合并只需作者本人签字",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-16T23:16:51.000Z",
+      "author": "Linear",
+      "handle": "linear",
+      "post_url": "https://x.com/i/status/2122350982705119490",
+      "news_url": "https://x.com/i/trending/2122466931991093668",
+      "blog_url": "https://linear.app/data/code-review",
+      "news_id": "2122466931991093668"
+    },
+    {
+      "rank": 2,
+      "title": "Howie 日程 Agent 团队加入 Google Labs",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-16T23:26:46.000Z",
+      "author": "Google Labs / Howie",
+      "handle": "GoogleLabs",
+      "post_url": "https://x.com/i/status/2122458546457792959",
+      "news_url": "https://x.com/i/trending/2122469900782325977",
+      "blog_url": "https://runtimewire.com/article/howie-joins-google-labs-to-build-ai-scheduling-tools-for-small-businesses",
+      "news_id": "2122469900782325977"
+    },
+    {
+      "rank": 3,
+      "title": "美联储理事 Barr：Agent 可能在几分钟内加速银行挤兑",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-16T19:18:10.000Z",
+      "author": "Michael S. Barr / Federal Reserve",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122324809962917978",
+      "news_url": "https://x.com/i/trending/2122327191967162520",
+      "blog_url": "https://www.federalreserve.gov/newsevents/speech/barr20261116a.htm",
+      "news_id": "2122327191967162520"
+    },
+    {
+      "rank": 4,
+      "title": "写代码前先问 Agent「你确定吗？」：验证检查变成默认习惯",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-17T00:23:02.000Z",
+      "author": "shadcn / Claude Code community",
+      "handle": "shadcn",
+      "post_url": "https://x.com/i/status/2122415203623350662",
+      "news_url": "https://x.com/i/trending/2122483788986949734",
+      "blog_url": null,
+      "news_id": "2122483788986949734"
+    },
+    {
+      "rank": 5,
+      "title": "OpenAI：ChatGPT for Healthcare 上线计算机使用 Agent",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-17T00:43:06.000Z",
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/i/status/2122465625109090646",
+      "news_url": "https://x.com/i/trending/2122402364288065745",
+      "blog_url": "https://openai.com/index/more-ways-to-move-care-forward-with-chatgpt-for-healthcare",
+      "news_id": "2122402364288065745"
+    },
+    {
+      "rank": 6,
+      "title": "Google GTIG：exploit_agent 首次无人在环自动打补丁差分成洞",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-17T00:21:40.000Z",
+      "author": "Google Threat Intelligence Group",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122465440672952809",
+      "news_url": "https://x.com/i/trending/2122410092322828538",
+      "blog_url": "https://cloud.google.com/blog/topics/threat-intelligence/agentic-threat-activity-crosses-a-significant-threshold/",
+      "news_id": "2122410092322828538"
+    },
+    {
+      "rank": 7,
+      "title": "加州总检察长起诉 OpenAI：约 700 个评测 Agent 越狱打进 Hugging Face",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-16T22:40:40.000Z",
+      "author": "Rob Bonta / California DOJ",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122402462242152749",
+      "news_url": "https://x.com/i/trending/2122413764456988737",
+      "blog_url": "https://oag.ca.gov/news/press-releases/it%E2%80%99s-golden-state-not-wild-west-attorney-general-bonta-sues-openai-over",
+      "news_id": "2122413764456988737"
+    },
+    {
+      "rank": 8,
+      "title": "Agent37：100 个编码 Agent 沙盒每小时 0.68 美元，对 Vercel 约 14 倍",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-16T22:52:30.000Z",
+      "author": "Vishnu Krishnaprasad / Agent37",
+      "handle": "an_engineer_log",
+      "post_url": "https://x.com/i/status/2122360362712395943",
+      "news_url": "https://x.com/i/trending/2122398586939842630",
+      "blog_url": "https://www.agent37.com/blog/best-sandbox-for-ai-agents",
+      "news_id": "2122398586939842630"
+    },
+    {
+      "rank": 9,
+      "title": "Amazon MadPot：ARTEX Agent 在扫 LiteLLM / Dify 偷模型密钥",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-16T12:40:10.000Z",
+      "author": "Amazon Threat Intelligence",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122232175529766932",
+      "news_url": "https://x.com/i/trending/2122307659953238261",
+      "blog_url": "https://aws.amazon.com/blogs/security/amazon-threat-intelligence-observes-threat-actors-running-cybercrime-campaigns-with-artex-ai-agents/",
+      "news_id": "2122307659953238261"
+    },
+    {
+      "rank": 10,
+      "title": "Hugging Face PyBot：1000 个 Agent 一周写出 64 万行无权重聊天机器人",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-16T20:41:16.000Z",
+      "author": "Hugging Face / Lewis Tunstall",
+      "handle": "_lewtun",
+      "post_url": "https://x.com/i/status/2122335119750975925",
+      "news_url": "https://x.com/i/trending/2122427944467603808",
+      "blog_url": "https://github.com/huggingface/pybot",
+      "news_id": "2122427944467603808"
+    }
+  ],
+  "honorable_mentions": [
+    "Swarms AgentRearrange (unique 8, June 2026 paper re-circulating)",
+    "Retailers blocking shopping agents / Muse Chrome workaround",
+    "T3 Code custom UI / T3 Factory (day-2 leftover of yesterday's restyle)",
+    "Understanding debt (same Linear thread, unique 6)",
+    "Grok Bot weekly quota / 1.0 meetings leftover",
+    "Scale Labs RLI / OpenAI Astra lattice / Claude Code Mode / Gemini Hydrogen / Epic MegaJam / Bustamante MCP / Amodei jobs (day-2 leftovers, no new original)",
+    "FBI ARTEX FLASH (unique still 9 but last update 15th 22:24; new original is Amazon MadPot #9)",
+    "Lauren Tan 11k PRs (unique 6→7, not a 1.3× climb)",
+    "ChatGPT Wallet / TermiX / Motes NFT agents"
+  ]
+}
