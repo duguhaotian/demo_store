@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-18",
+  "window": {
+    "start": "2026-11-17T01:03:00Z",
+    "end": "2026-11-18T01:03:45Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-18T01:25:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "search_posts_all and get_posts_by_ids returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents leave the IDE and join the org chart: Ramp brand teammates, JPMorgan treasury counterparties, Grok Bot accountants, Devin Bots as managers. The same stack showed up as a PyPI supply-chain hit on Microsoft Agent Framework.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Ramp：Brand as Software 其二，把品牌团队做成可扩展的 Agent 产品",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-17T19:51:25.000Z",
+      "author": "Paul Jun / Ramp",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122714711095468195",
+      "news_url": "https://x.com/i/trending/2122777735873659295",
+      "blog_url": "https://ramp.design/blog/brand-as-software",
+      "news_id": "2122777735873659295"
+    },
+    {
+      "rank": 2,
+      "title": "摩根大通 Kinexys × 现代卡：银行 Agent 与客户 Agent 完成模拟外汇交易",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-18T00:19:30.000Z",
+      "author": "Kinexys by J.P. Morgan / Hyundai Card",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122835720893342129",
+      "news_url": "https://x.com/i/trending/2122844785664725130",
+      "blog_url": "https://www.cnbc.com/2026/11/18/jpmorgan-hyundai-card-ai-agents-payments.html",
+      "news_id": "2122844785664725130"
+    },
+    {
+      "rank": 3,
+      "title": "OpenCrawl：给编码 Agent 做多人游戏，共享会话历史和留言板",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-17T10:04:01.000Z",
+      "author": "Shalin Patel / OpenCrawl",
+      "handle": "Shalin__Patel",
+      "post_url": "https://x.com/i/status/2122388855374704774",
+      "news_url": "https://x.com/i/trending/2122630092400554203",
+      "blog_url": "https://www.ycombinator.com/launches/XFb-opencrawl-multiplayer-for-your-coding-agents",
+      "news_id": "2122630092400554203"
+    },
+    {
+      "rank": 4,
+      "title": "微软 Agent Framework 的 PyPI 包被植入凭据窃取程序",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T00:28:53.000Z",
+      "author": "Wiz / Endor Labs / Aikido",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122829002981130469",
+      "news_url": "https://x.com/i/trending/2122847751428014216",
+      "blog_url": "https://www.wiz.io/blog/malicious-version-of-microsofts-agent-framework-published-to-pypi",
+      "news_id": "2122847751428014216"
+    },
+    {
+      "rank": 5,
+      "title": "Anthropic：把子 Agent 折回单循环，技能按需展开",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-17T23:32:34.000Z",
+      "author": "Anthropic",
+      "handle": "AnthropicAI",
+      "post_url": "https://x.com/i/status/2122664990624641421",
+      "news_url": "https://x.com/i/trending/2122685281803334081",
+      "blog_url": "https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop",
+      "news_id": "2122685281803334081"
+    },
+    {
+      "rank": 6,
+      "title": "SpaceXSI：五个 Grok Bot 顶上会计编制，发票从 24 小时压到几分钟",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-17T21:29:51.000Z",
+      "author": "SpaceXSI",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122771386456551516",
+      "news_url": "https://x.com/i/trending/2122802065273418160",
+      "blog_url": "https://x.ai/news/grok-bot-accounting",
+      "news_id": "2122802065273418160"
+    },
+    {
+      "rank": 7,
+      "title": "Islo：企业软件工厂上线，Insight Partners 领投 1500 万美元",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-17T21:02:03.000Z",
+      "author": "Islo / Incredibuild",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122721428856328598",
+      "news_url": "https://x.com/i/trending/2122753424647491896",
+      "blog_url": "https://islo.dev/blog/launching-islo-enterprise-software-factories/",
+      "news_id": "2122753424647491896"
+    },
+    {
+      "rank": 8,
+      "title": "Hugging Face harness-hub：给 Qwen3.8-27B 的 Pi 编码 Agent 适配器",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-18T01:00:32.000Z",
+      "author": "Hugging Face / harness-hub",
+      "handle": "huggingface",
+      "post_url": "https://x.com/i/status/2122784279604383914",
+      "news_url": "https://x.com/i/trending/2122805420435648541",
+      "blog_url": "https://huggingface.co/harness-hub/Qwen3.8-27B-pi-adapted",
+      "news_id": "2122805420435648541"
+    },
+    {
+      "rank": 9,
+      "title": "Perplexity：Computer Multiagent 与 Orchestrator API，年经常性收入过 10 亿美元",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-18T00:50:35.000Z",
+      "author": "Perplexity",
+      "handle": "perplexity_ai",
+      "post_url": "https://x.com/i/status/2122734422445445629",
+      "news_url": "https://x.com/i/trending/2122586650655981924",
+      "blog_url": "https://www.perplexity.ai/hub/blog/introducing-computer-multiagent",
+      "news_id": "2122586650655981924"
+    },
+    {
+      "rank": 10,
+      "title": "Cognition：Devin Bots，持久 Agent 带队完成目标而不是任务",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-17T23:00:03.000Z",
+      "author": "Cognition",
+      "handle": "cognition_labs",
+      "post_url": "https://x.com/i/status/2122737511684587551",
+      "news_url": "https://x.com/i/trending/2122746523968835595",
+      "blog_url": "https://devin.ai/blog/introducing-devin-bots",
+      "news_id": "2122746523968835595"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Daytona 在 Apple Silicon 上出租 macOS Agent 沙箱",
+      "cluster_unique_posts": 6,
+      "news_id": "2122753420138618975",
+      "blog_url": "https://www.daytona.io/dotfiles/macos-sandboxes"
+    },
+    {
+      "title": "SID-2：搜索 Swarm，号称比 Opus / Astra 快 8 倍、便宜 20 倍",
+      "cluster_unique_posts": 6,
+      "news_id": "2122795325932937673",
+      "blog_url": "https://www.sid.ai/research"
+    },
+    {
+      "title": "First Person Labs Second：用户自有的个人模型，给 Agent 当上下文 API",
+      "cluster_unique_posts": 6,
+      "news_id": "2122802058273124471",
+      "blog_url": "https://2.computer/blog/a-model-of-ones-own"
+    },
+    {
+      "title": "Coinbase Ventures 绘制智能体交易四层栈",
+      "cluster_unique_posts": 7,
+      "news_id": "2122770233354232253",
+      "blog_url": "https://www.coinbase.com/en-gb/blog/coinbase-for-agents"
+    },
+    {
+      "title": "Agent37 沙箱定价（持续发酵，独立帖 7→10）",
+      "cluster_unique_posts": 10,
+      "news_id": "2122398586939842630",
+      "blog_url": null
+    }
+  ]
+}
