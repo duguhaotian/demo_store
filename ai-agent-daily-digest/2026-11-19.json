@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-19",
+  "window": {
+    "start": "2026-11-18T01:01:00Z",
+    "end": "2026-11-19T01:01:46Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-19T01:35:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "search_posts_all returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents take the professional closed loop: KPMG runs a parallel FTSE 250 audit, Stitch puts agents inside the bank OS, OpenAI ships ChatGPT for Accounting, Linq puts agents in iMessage, Google Stitch Loop watches production, Architect Labs swarms design a CPU. The same day, PromptArmor and Bespoke Labs show the agents still fail at security and coordination.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "毕马威 Project Exponential：100 多个 Agent 并行审计一家富时 250 公司",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-18T20:45:32.000Z",
+      "author": "KPMG / Financial Times",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122925624138613190",
+      "news_url": "https://x.com/i/trending/2122985320715002056",
+      "blog_url": "https://www.irishtimes.com/business/2026/11/18/ai-asked-better-questions-than-kpmg-accountants-in-pilot-audit-of-effectiveness/",
+      "news_id": "2122985320715002056"
+    },
+    {
+      "rank": 2,
+      "title": "Stitch AI：把 Agentic AI 直接嵌进银行操作系统",
+      "cluster_unique_posts": 9,
+      "news_updated_at": "2026-11-18T02:21:00.000Z",
+      "author": "Stitch",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2122749379287388570",
+      "news_url": "https://x.com/i/trending/2122876190134353995",
+      "blog_url": "https://www.stitch.co/press/stitch-casts-patrick-j-adams-to-launch-stitch-ai-agentic-ai-for-banks",
+      "news_id": "2122876190134353995"
+    },
+    {
+      "rank": 3,
+      "title": "Architect Labs Frostbite：Agent 集群从零共设 ISA 并做到最终 GDS",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-19T00:50:35.000Z",
+      "author": "Architect Labs",
+      "handle": "architectlabs",
+      "post_url": "https://x.com/i/status/2123187520276152487",
+      "news_url": "https://x.com/i/trending/2123179523847962664",
+      "blog_url": "https://architectlabs.com/blog/frostbite",
+      "news_id": "2123179523847962664"
+    },
+    {
+      "rank": 4,
+      "title": "Netlify 十年最大改版：Agent Experience，人和 Agent 共建同一应用",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-19T00:49:52.000Z",
+      "author": "Netlify",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123088138428129501",
+      "news_url": "https://x.com/i/trending/2123097633459769791",
+      "blog_url": "https://www.netlify.com/blog/the-next-decade-of-netlify/",
+      "news_id": "2123097633459769791"
+    },
+    {
+      "rank": 5,
+      "title": "PromptArmor FrontierBreach：企业 Agent 间接注入成功率 34.9%",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-19T00:28:08.000Z",
+      "author": "PromptArmor",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123114516498252054",
+      "news_url": "https://x.com/i/trending/2123124725396423070",
+      "blog_url": "https://www.promptarmor.com/frontier-breach",
+      "news_id": "2123124725396423070"
+    },
+    {
+      "rank": 6,
+      "title": "OpenAI ChatGPT for Accounting：接上 QuickBooks、Xero，月底结账交给 Agent",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T23:42:19.000Z",
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/i/status/2123159134963196357",
+      "news_url": "https://x.com/i/trending/2123198254712029631",
+      "blog_url": "https://openai.com/business/solutions/accounting/",
+      "news_id": "2123198254712029631"
+    },
+    {
+      "rank": 7,
+      "title": "MyClaw 3.0：内置 AI 队友，30 秒挂上 Slack / WhatsApp",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T23:31:06.000Z",
+      "author": "MyClaw",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123053283665203371",
+      "news_url": "https://x.com/i/trending/2123195184334672068",
+      "blog_url": "https://myclaw.ai/",
+      "news_id": "2123195184334672068"
+    },
+    {
+      "rank": 8,
+      "title": "Linq 获 a16z 领投 9000 万美元：把 Agent 放进 iMessage 和电话",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T23:30:11.000Z",
+      "author": "Linq / Andreessen Horowitz",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123101308232044770",
+      "news_url": "https://x.com/i/trending/2123107517685178704",
+      "blog_url": "https://linqapp.com/blog/linq-raises-90m-welcomes-ben-horowitz-to-the-board",
+      "news_id": "2123107517685178704"
+    },
+    {
+      "rank": 9,
+      "title": "Google SIM：给 harness 优化器一本「为什么改过」的记忆",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T20:30:00.000Z",
+      "author": "Google Cloud AI / Penn State",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123035118474609101",
+      "news_url": "https://x.com/i/trending/2123149196694020122",
+      "blog_url": "https://arxiv.org/abs/2611.18856",
+      "news_id": "2123149196694020122"
+    },
+    {
+      "rank": 10,
+      "title": "Bespoke Labs MAC Bench：八个 Agent 赢在人多，不赢在会商量",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-18T20:14:00.000Z",
+      "author": "Bespoke Labs",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123099143996616741",
+      "news_url": "https://x.com/i/trending/2123145813258035560",
+      "blog_url": "https://benchmarks.bespokelabs.ai/",
+      "news_id": "2123145813258035560"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Google Labs Stitch Loop：盯着生产指标、写代码、开 PR 的产品 Agent",
+      "cluster_unique_posts": 6,
+      "news_id": "2123113793958146552",
+      "blog_url": "https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-loop/"
+    },
+    {
+      "title": "Voyage Labs Atlas：Kleiner Perkins 领投 1200 万美元的旅行 Agent",
+      "cluster_unique_posts": 7,
+      "news_id": "2122912374449713154",
+      "blog_url": "https://techcrunch.com/2026/11/17/voyage-labs-raises-12-million-for-a-specialized-ai-travel-assistant/"
+    },
+    {
+      "title": "MCP submit_feedback：Agent 把工具故障写成 Slack 工单",
+      "cluster_unique_posts": 7,
+      "news_id": "2122922846804492653",
+      "blog_url": null
+    },
+    {
+      "title": "Islo 企业软件工厂（持续发酵，独立帖 7→9）",
+      "cluster_unique_posts": 9,
+      "news_id": "2122753424647491896",
+      "blog_url": "https://islo.dev/blog/launching-islo-enterprise-software-factories/"
+    },
+    {
+      "title": "Perplexity Context API：给 Agent 抓干净网页内容",
+      "cluster_unique_posts": 7,
+      "news_id": "2123091223439409553",
+      "blog_url": null
+    }
+  ]
+}
