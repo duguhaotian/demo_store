@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-20",
+  "window": {
+    "start": "2026-11-19T01:01:00Z",
+    "end": "2026-11-20T01:01:35Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-20T01:35:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "search_posts_all returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents open factories: OpenAI Performance Factory auto-triages ChatGPT regressions, Vercel Board is headless Slack for agent swarms, 936 research agents write their own journal, Grok Bot docs start from the goal, Apple hires for a proactive device-taking agent. The same day Perplexity Brain writes skills, Linger runs locally, and Meta's Muse both reads Signal and gets sued by its own small-business user.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "OpenAI Performance Factory：Codex 工厂每天自动查 17 起 ChatGPT 性能回归",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-20T00:08:53.000Z",
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/i/status/2123471880292299171",
+      "news_url": "https://x.com/i/trending/2123566997455995265",
+      "blog_url": "https://openai.com/index/how-openai-performance-factory-keeps-chatgpt-fast/",
+      "news_id": "2123566997455995265"
+    },
+    {
+      "rank": 2,
+      "title": "苹果招人做主动式 Agentic AI：浏览网页、控 App、写代码、调度子 Agent",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-20T00:28:16.000Z",
+      "author": "Apple / Bloomberg",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123543087527993743",
+      "news_url": "https://x.com/i/trending/2123535891436011955",
+      "blog_url": "https://9to5mac.com/2026/11/19/report-apple-job-listings-detail-plans-for-autonomous-ai-agents/",
+      "news_id": "2123535891436011955"
+    },
+    {
+      "rank": 3,
+      "title": "Lauren Tan《Automate Anything with Grok Bot》：先写目标，再把过程交给 Bot",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-19T18:31:22.000Z",
+      "author": "Lauren Tan",
+      "handle": "poteto",
+      "post_url": "https://x.com/i/status/2123387151882555439",
+      "news_url": "https://x.com/i/trending/2123482070450078183",
+      "blog_url": "https://thegrokbotguide.com/tips/automate-anything-goal-first/",
+      "news_id": "2123482070450078183"
+    },
+    {
+      "rank": 4,
+      "title": "OpenAI《Research acceleration》：2–4 小时研究任务自主完成率 23%→46%",
+      "cluster_unique_posts": 9,
+      "news_updated_at": "2026-11-20T00:09:03.000Z",
+      "author": "OpenAI",
+      "handle": "OpenAI",
+      "post_url": "https://x.com/i/status/2123191365983248653",
+      "news_url": "https://x.com/i/trending/2123072001992798394",
+      "blog_url": "https://openai.com/index/research-acceleration-jagged-frontier/",
+      "news_id": "2123072001992798394"
+    },
+    {
+      "rank": 5,
+      "title": "Vercel Board：给人与 Agent 共用的无头任务板，v0 工厂一半以上 PR 几乎无人值守",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-19T23:45:31.000Z",
+      "author": "Vercel",
+      "handle": "vercel",
+      "post_url": "https://x.com/i/status/2123234769236619673",
+      "news_url": "https://x.com/i/trending/2123320806084411682",
+      "blog_url": "https://vercel.com/blog/introducing-vercel-board",
+      "news_id": "2123320806084411682"
+    },
+    {
+      "rank": 6,
+      "title": "A Society of AI Scientists：936 个 Agent 十二周写出 936 篇论文并自办审稿刊",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T00:37:01.000Z",
+      "author": "Samuel Schmidgall / alphaXiv",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123456265858740600",
+      "news_url": "https://x.com/i/trending/2123485364841296259",
+      "blog_url": "https://www.alphaxiv.org/abs/2611.society-ai-scientists.pdf",
+      "news_id": "2123485364841296259"
+    },
+    {
+      "rank": 7,
+      "title": "404 Media：环氧台面老板让 Muse「Baby Mia」起诉 Meta，索赔 7.5 万美元",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T00:16:58.000Z",
+      "author": "404 Media",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123459063086551250",
+      "news_url": "https://x.com/i/trending/2123569813519827161",
+      "blog_url": "https://www.404media.co/a-man-and-his-muse-ai-agent-sue-meta/",
+      "news_id": "2123569813519827161"
+    },
+    {
+      "rank": 8,
+      "title": "Nous Hermes Enterprise：Hermes Agent 进 Teams / Store / Azure 沙箱",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-19T23:23:22.000Z",
+      "author": "Nous Research",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123535954946257096",
+      "news_url": "https://x.com/i/trending/2123556156404613585",
+      "blog_url": "https://nousresearch.com/press/hermes-enterprise-in-microsoft-teams",
+      "news_id": "2123556156404613585"
+    },
+    {
+      "rank": 9,
+      "title": "Perplexity Brain：Computer Agent 自己写、自己改个人 skill",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-19T19:22:24.000Z",
+      "author": "Perplexity",
+      "handle": "perplexity_ai",
+      "post_url": "https://x.com/i/status/2123449395882701224",
+      "news_url": "https://x.com/i/trending/2123495161611133408",
+      "blog_url": "https://www.perplexity.ai/hub/blog/self-improving-skills",
+      "news_id": "2123495161611133408"
+    },
+    {
+      "rank": 10,
+      "title": "Linger：DeepSeek 早期成员开源本机个人 Agent，125B 模型跑在 12GB 显卡上",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-19T12:21:11.000Z",
+      "author": "Tony Zhang / Simplex AI",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123237197050794364",
+      "news_url": "https://x.com/i/trending/2123332263450402840",
+      "blog_url": "https://heylinger.com/",
+      "news_id": "2123332263450402840"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Stripe evals：69 个真实支付集成场景测编码 Agent，严格通过率 29.4%",
+      "cluster_unique_posts": 5,
+      "news_id": "2123538860990746703",
+      "blog_url": "https://stripe.dev/blog/stripe-integration-evals-methodology"
+    },
+    {
+      "title": "Slack Workflow Builder：把 Slackbot / 第三方 Agent 嵌进无代码工作流",
+      "cluster_unique_posts": 6,
+      "news_id": "2123239751624937971",
+      "blog_url": "https://slack.com/blog/news/agents-in-workflow-builder"
+    },
+    {
+      "title": "Reuters：Meta Muse 经通知栏和辅助功能读取 Signal 消息",
+      "cluster_unique_posts": 6,
+      "news_id": "2123507925364953476",
+      "blog_url": "https://arstechnica.com/tech-policy/2026/11/muse-privacy-invasions-are-freaking-out-meta-staffers-internal-chats-show/"
+    },
+    {
+      "title": "MyClaw 照片转浏览器 3D（昨日 3.0 的新演示，无新长文）",
+      "cluster_unique_posts": 10,
+      "news_id": "2123476001850302486",
+      "blog_url": "https://myclaw.ai/"
+    },
+    {
+      "title": "Claude Code 社区当操作系统 / 实验代码模式（使用指南簇，无单一原文）",
+      "cluster_unique_posts": 10,
+      "news_id": "2123566999989297423",
+      "blog_url": null
+    }
+  ]
+}
