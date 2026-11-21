@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-21",
+  "window": {
+    "start": "2026-11-20T01:01:35Z",
+    "end": "2026-11-21T01:00:51Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-21T01:45:00Z",
+  "source": "X News search_news (~30h) + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0; search_posts_all / get_posts_by_ids / get_news returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Agents leave the factory floor and sit in the tools people already open: Muse claims @muse.ai mail and a Chrome sidebar, Claude's phone becomes a remote for Claude Code, Gemini computer-use runs on a spare Mac window, Warp teaches factory engineering, Paradigm's CTO writes a swarm-riding field guide, Kong Volcano self-heals agent clouds, and METR times public agents at 27-hour verifiable tasks.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Meta Muse：@muse.ai 邮箱 + Chrome 侧栏，个人 Agent 进收件箱和浏览器",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-20T07:44:31.000Z",
+      "author": "Meta / Alexandr Wang",
+      "handle": "Muse",
+      "post_url": "https://x.com/i/status/2123602791356883032",
+      "news_url": "https://x.com/i/trending/2123635308445204822",
+      "blog_url": "https://www.meta.com/help/superintelligence/1149305437517250/",
+      "news_id": "2123635308445204822"
+    },
+    {
+      "rank": 2,
+      "title": "METR Q4 能力更新：公开前沿模型在可验证任务上的 50% 时间视界到 27 小时",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-20T23:21:09.000Z",
+      "author": "METR",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123864981506798012",
+      "news_url": "https://x.com/i/trending/2123917203900920314",
+      "blog_url": "https://metr.org/blog/2026-11-20-q4-2026-capability-update/",
+      "news_id": "2123917203900920314"
+    },
+    {
+      "rank": 3,
+      "title": "Claude 移动端改版：主屏直接开 Claude Code / Projects / Artifacts",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T23:41:28.000Z",
+      "author": "Anthropic / Daniel Destefanis",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123860186951516287",
+      "news_url": "https://x.com/i/trending/2123879395790402025",
+      "blog_url": "https://code.claude.com/docs/en/mobile",
+      "news_id": "2123879395790402025"
+    },
+    {
+      "rank": 4,
+      "title": "Nous Hermes Plugin Hackathon：近千份插件，Foreman / Housemate / Plan Mode 获奖",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T23:20:52.000Z",
+      "author": "Nous Research",
+      "handle": "NousResearch",
+      "post_url": "https://x.com/i/status/2123882430620733742",
+      "news_url": "https://x.com/i/trending/2123917200126074943",
+      "blog_url": "https://hermes-agent.nousresearch.com/marketplace",
+      "news_id": "2123917200126074943"
+    },
+    {
+      "rank": 5,
+      "title": "Georgios Konstantopoulos《Effective Swarm Riding》：别编排，把代码库改到能让 swarm 硬闯",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T22:34:11.000Z",
+      "author": "Georgios Konstantopoulos",
+      "handle": "gakonst",
+      "post_url": "https://x.com/i/status/2123839118409109853",
+      "news_url": "https://x.com/i/trending/2123906016417095937",
+      "blog_url": "https://www.paradigm.xyz/writing/swarms",
+      "news_id": "2123906016417095937"
+    },
+    {
+      "rank": 6,
+      "title": "Kong Volcano：自愈 Agent 云，LavaFlow 从生产报错开修复 PR",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T02:14:47.000Z",
+      "author": "Kong / Marco Palladino",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123548256340709630",
+      "news_url": "https://x.com/i/trending/2123599603068981629",
+      "blog_url": "https://volcano.dev/blog/introducing-volcano-agent-cloud",
+      "news_id": "2123599603068981629"
+    },
+    {
+      "rank": 7,
+      "title": "Warp Learn：免费课教你搭会自我改进的 software factory",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-20T23:31:08.000Z",
+      "author": "Warp / Zach Lloyd",
+      "handle": "zachlloydtweets",
+      "post_url": "https://x.com/i/status/2123808803070063033",
+      "news_url": "https://x.com/i/trending/2123873248324526240",
+      "blog_url": "https://www.warp.dev/blog/warp-learn-software-factory-course",
+      "news_id": "2123873248324526240"
+    },
+    {
+      "rank": 8,
+      "title": "Google Gemini computer use 登陆 Mac：后台窗口点菜单、填表、跨 App 干活",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-20T18:30:39.000Z",
+      "author": "Google",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123513203745538423",
+      "news_url": "https://x.com/i/trending/2123504501147758948",
+      "blog_url": "https://blog.google/innovation-and-ai/products/gemini-app/computer-use-mac/",
+      "news_id": "2123504501147758948"
+    },
+    {
+      "rank": 9,
+      "title": "苹果招人做主动式 Agentic AI（昨日 #2 续热）：浏览网页、控 App、调度子 Agent",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T22:45:12.000Z",
+      "author": "Apple / Bloomberg",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123543087527993743",
+      "news_url": "https://x.com/i/trending/2123535891436011955",
+      "blog_url": "https://9to5mac.com/2026/11/19/report-apple-job-listings-detail-plans-for-autonomous-ai-agents/",
+      "news_id": "2123535891436011955"
+    },
+    {
+      "rank": 10,
+      "title": "A Society of AI Scientists（昨日 #6 续热）：936 个 Agent 自办审稿刊",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-20T19:58:12.000Z",
+      "author": "Samuel Schmidgall / alphaXiv",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2123456265858740600",
+      "news_url": "https://x.com/i/trending/2123485364841296259",
+      "blog_url": "https://www.alphaxiv.org/abs/2611.society-ai-scientists.pdf",
+      "news_id": "2123485364841296259"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Obsidian 官方插件让 Grok Bot 读写本地 vault / Bases / Canvas",
+      "cluster_unique_posts": 6,
+      "news_id": "2123530010589872307",
+      "blog_url": "https://obsidian.md/help/skills"
+    },
+    {
+      "title": "Stripe evals：69 个真实支付集成场景测编码 Agent（昨日荣誉提及，独立帖仍 5）",
+      "cluster_unique_posts": 5,
+      "news_id": "2123538860990746703",
+      "blog_url": "https://stripe.dev/blog/stripe-integration-evals-methodology"
+    },
+    {
+      "title": "MyClaw Neon 照片转可走 3D（无新长文，独立帖 7）",
+      "cluster_unique_posts": 7,
+      "news_id": "2123760889136402933",
+      "blog_url": "https://myclaw.ai/"
+    },
+    {
+      "title": "Grok Bot 周额度提前打满，社区分享省 token 指南",
+      "cluster_unique_posts": 6,
+      "news_id": "2123917207617036777",
+      "blog_url": null
+    },
+    {
+      "title": "TrustedSec：30 多个 AI Agent 14 分钟内打穿凭证/2FA（社会新闻，无产品原文）",
+      "cluster_unique_posts": 7,
+      "news_id": "2123637232607048090",
+      "blog_url": null
+    }
+  ]
+}
