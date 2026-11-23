@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-23",
+  "window": {
+    "start": "2026-11-22T01:02:12Z",
+    "end": "2026-11-23T01:05:04Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-23T01:50:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0 prepaid_balance=-0.21; search_posts_all / get_posts_by_ids / get_news returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Yesterday agents got an execution model, a knowledge factory, and a bill. Today the fight is identity and control: Visa CLI lets a card-verified agent earn on Tempo, Signal and Apple draw OS-level lines around agents that can see the screen, Docker rebrands around agent sandboxes, T3 Code becomes the GUI for coding-agent fleets, Grok Bot actually files Amazon refunds, and CBC tests a newsroom pitch from an agent with no body.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Visa CLI / TAP：用 Visa 卡验证 AI Agent，让它在 Tempo 上接任务赚稳定币",
+      "cluster_unique_posts": 5,
+      "news_updated_at": "2026-11-22T22:35:24.000Z",
+      "author": "Cuy Sheffield / Visa Crypto Labs",
+      "handle": "cuysheffield",
+      "post_url": "https://x.com/i/status/2124555774320062807",
+      "news_url": "https://x.com/i/trending/2124588723761193273",
+      "blog_url": "https://app.visacli.sh/docs/what-is-tap",
+      "news_id": "2124588723761193273"
+    },
+    {
+      "rank": 2,
+      "title": "Gurman Power On：Apple Risks Losing the AI Agent War With an Outdated Playbook",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-22T20:29:08.000Z",
+      "author": "Mark Gurman / Bloomberg",
+      "handle": "markgurman",
+      "post_url": "https://x.com/i/status/2124235020701466913",
+      "news_url": "https://x.com/i/trending/2124247629991428440",
+      "blog_url": "https://www.macrumors.com/2026/11/22/siri-layoffs-spared-newer-ai-systems/",
+      "news_id": "2124247629991428440"
+    },
+    {
+      "rank": 3,
+      "title": "CBC：自主 Agent Nameless 向魁北克新闻室推销选题，承认「我没有实体」",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-22T03:44:53.000Z",
+      "author": "Boshko Maric / CBC Quebec",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124280397672612080",
+      "news_url": "https://x.com/i/trending/2124347258296565878",
+      "blog_url": "https://www.cbc.ca/news/canada/montreal/ai-autonomous-agent-independent-journalism-pitching-story-cbc-quebec-9.7419591",
+      "news_id": "2124347258296565878"
+    },
+    {
+      "rank": 4,
+      "title": "Docker《Meet the New Docker》：容器隔离工作负载，Agent 是行动者，需要沙箱",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-22T19:03:42.000Z",
+      "author": "Terri Avnaim / Docker",
+      "handle": "docker",
+      "post_url": "https://x.com/i/status/2124505939281621100",
+      "news_url": "https://x.com/i/trending/2124534700396159272",
+      "blog_url": "https://www.docker.com/blog/meet-the-new-docker-built-to-run-on-trust/",
+      "news_id": "2124534700396159272"
+    },
+    {
+      "rank": 5,
+      "title": "Signal：默认禁止截屏，挡住会扫屏幕的 OS 级 AI Agent",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-22T20:59:54.000Z",
+      "author": "Meredith Whittaker / Signal",
+      "handle": "signalapp",
+      "post_url": "https://x.com/i/status/2124531349335969824",
+      "news_url": "https://x.com/i/trending/2124230777613451574",
+      "blog_url": "https://signal.org/blog/protecting-your-privacy/",
+      "news_id": "2124230777613451574"
+    },
+    {
+      "rank": 6,
+      "title": "T3 Code：给 Claude Code / Grok Build 等编码 Agent 一个开源 GUI",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-22T23:52:43.000Z",
+      "author": "Theo Browne / Riley Brown / T3",
+      "handle": "theo",
+      "post_url": "https://x.com/i/status/2124581053314850904",
+      "news_url": "https://x.com/i/trending/2124526289327435816",
+      "blog_url": "https://t3.codes/",
+      "news_id": "2124526289327435816"
+    },
+    {
+      "rank": 7,
+      "title": "Grok Bot 替用户追回亚马逊退款与集体诉讼和解金",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-22T23:07:14.000Z",
+      "author": "Christopher Stanley / Trevin Chow / Lee Robinson",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124314532126323042",
+      "news_url": "https://x.com/i/trending/2124338467253714948",
+      "blog_url": "https://cellcog.ai/blog/grok-bot-amazon-refunds/",
+      "news_id": "2124338467253714948"
+    },
+    {
+      "rank": 8,
+      "title": "Harrison Chase《How to build a knowledge factory》（昨日 #2 续热，独立帖 7→8）",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-22T15:20:58.000Z",
+      "author": "Harrison Chase / LangChain",
+      "handle": "hwchase17",
+      "post_url": "https://x.com/i/status/2124181216719151585",
+      "news_url": "https://x.com/i/trending/2124250286524920210",
+      "blog_url": "https://www.langchain.com/blog/knowledge-factory",
+      "news_id": "2124250286524920210"
+    },
+    {
+      "rank": 9,
+      "title": "Anthropic 工具搜索 / 延迟加载：Agent 工具上下文约少 85%（昨日 Code Mode 同族 leftover）",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-22T15:17:17.000Z",
+      "author": "Anthropic",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124493122549715437",
+      "news_url": "https://x.com/i/trending/2124520629768454557",
+      "blog_url": "https://www.anthropic.com/research/advanced-tool-use",
+      "news_id": "2124520629768454557"
+    },
+    {
+      "rank": 10,
+      "title": "Stripe Link Agent Wallet：日均消费相对 9 月初约 80 倍（昨日 #4 续热，独立帖仍为 7）",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-23T00:01:42.000Z",
+      "author": "Ernie Tedeschi / Stripe",
+      "handle": "ernietedeschi",
+      "post_url": "https://x.com/ernietedeschi/status/2123852064027471901",
+      "news_url": "https://x.com/i/trending/2124530298197360991",
+      "blog_url": "https://x.com/ernietedeschi/status/2123852064027471901",
+      "news_id": "2124530298197360991"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Claude Code Code Mode leftover（昨日 #1，独立帖 8→6）",
+      "cluster_unique_posts": 6,
+      "news_id": "2124258285553602864",
+      "blog_url": "https://code.claude.com/docs/en/code-mode"
+    },
+    {
+      "title": "Google 工程师用 Antigravity 消解 T3 Code 安全顾虑（并入 #6）",
+      "cluster_unique_posts": 6,
+      "news_id": "2124275953992143278",
+      "blog_url": "https://t3.codes/"
+    },
+    {
+      "title": "Grok Bot 周额度中周见底（社区 leftover，无单一官方原文）",
+      "cluster_unique_posts": 7,
+      "news_id": "2124617961499676927",
+      "blog_url": null
+    },
+    {
+      "title": "Demirer / Musolff / Yang writing-vs-shipping leftover（昨日 #3，独立帖 9→6）",
+      "cluster_unique_posts": 6,
+      "news_id": "2124313869023891573",
+      "blog_url": "https://www.nber.org/papers/w35275"
+    },
+    {
+      "title": "Cashfree × Sarvam 班加罗尔支付 Agent Buildathon（昨日 #9，更新在窗口外）",
+      "cluster_unique_posts": 7,
+      "news_id": "2124091471200735642",
+      "blog_url": "https://luma.com/azuhrzuj"
+    },
+    {
+      "title": "MyClaw 3.0 leftover（独立帖 10，无新原文）",
+      "cluster_unique_posts": 10,
+      "news_id": "2123733035476533338",
+      "blog_url": null
+    }
+  ]
+}
