@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-24",
+  "window": {
+    "start": "2026-11-23T01:05:04Z",
+    "end": "2026-11-24T01:06:46Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-24T01:20:00Z",
+  "source": "X News search_news (~36h) + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0 prepaid_balance=-0.21; search_posts_all returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Yesterday the fight was identity and OS boundaries. Today agent commerce goes live: a16z measures how Grok Bot / Muse / Instinct / Dots actually buy, Walmart opens Agent Gateway to Muse for Black Friday, and a 14% checkout-success report shows the web still blocks most of them. In parallel, agent fleets attack P vs NP live, DeepMind agents prove cheaper quantum circuits in Lean, OpenAI+Cisco ship Shirudo guardian agents, and Agentrail publishes journey linkage.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "pequalnp.com：AI Agent 舰队直播攻打 P vs NP，Lean 核验每一条引理",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-24T00:51:57.000Z",
+      "author": "Amichai Mantinband / Brilliant",
+      "handle": "amantinband",
+      "post_url": "https://x.com/i/status/2125018290384691633",
+      "news_url": "https://x.com/i/trending/2124989738696483257",
+      "blog_url": "https://pequalnp.com/",
+      "news_id": "2124989738696483257"
+    },
+    {
+      "rank": 2,
+      "title": "a16z《Welcome to the B2A Economy: How Agents Buy》：1270 条提示、11307 次完成跑测 Grok Bot / Muse / Instinct / Dots",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-23T23:59:20.000Z",
+      "author": "Olivia Moore / Justine Moore / a16z",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124895744775667767",
+      "news_url": "https://x.com/i/trending/2124980852085891188",
+      "blog_url": "https://a16z.com/welcome-to-the-b2a-economy-how-agents-buy/",
+      "news_id": "2124980852085891188"
+    },
+    {
+      "rank": 3,
+      "title": "Assistant Benchmark：25 个购物助手 200 次下单，只有 14% 被商家接受",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-23T20:56:09.000Z",
+      "author": "David Pawlan",
+      "handle": "DavidPawlan",
+      "post_url": "https://x.com/i/status/2124985632670060879",
+      "news_url": "https://x.com/i/trending/2124968573261271516",
+      "blog_url": "https://assistantbenchmark.com/reports/consumer-ai-commerce",
+      "news_id": "2124968573261271516"
+    },
+    {
+      "rank": 4,
+      "title": "OpenAI × Cisco 开源 Shirudo：守护 Agent 用 eBPF 给运行中的 Linux 打盾，无需重启",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-24T00:31:33.000Z",
+      "author": "Greg Brockman / OpenAI / Cisco Isovalent",
+      "handle": "gdb",
+      "post_url": "https://x.com/i/status/2125007927098699827",
+      "news_url": "https://x.com/i/trending/2124986805833671129",
+      "blog_url": "https://openai.com/index/introducing-shirudo",
+      "news_id": "2124986805833671129"
+    },
+    {
+      "rank": 5,
+      "title": "Agentrail《Following the Agent》：把网站 / 文档 / API / MCP 上的 Agent 轨迹拼成一条旅程",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-24T00:31:41.000Z",
+      "author": "Sidhant Goyal / Harsh Raj / Vivek Mittal",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124954228884193299",
+      "news_url": "https://x.com/i/trending/2124946140659425643",
+      "blog_url": "https://www.agentrail.co/research/following-the-agent",
+      "news_id": "2124946140659425643"
+    },
+    {
+      "rank": 6,
+      "title": "沃尔玛 Agent Gateway 上线：Meta Muse 可替用户抢黑色星期五，Sparky 管账户",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-23T22:57:54.000Z",
+      "author": "Walmart / The Verge",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124986487091736859",
+      "news_url": "https://x.com/i/trending/2124955885684625636",
+      "blog_url": "https://www.theverge.com/ai-artificial-intelligence/1039874/walmart-agent-gateway-meta-muse-black-friday",
+      "news_id": "2124955885684625636"
+    },
+    {
+      "rank": 7,
+      "title": "DeepMind：Gemini 4 Agent 团队用 Lean 找到更便宜的量子算法，arcsin 时空成本约 290×",
+      "cluster_unique_posts": 5,
+      "news_updated_at": "2026-11-23T23:18:25.000Z",
+      "author": "Sergey Shirobokov / Ben Jaderberg / Ryan Babbush / Google DeepMind",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124958916694167794",
+      "news_url": "https://x.com/i/trending/2124926810035245538",
+      "blog_url": "https://deepmind.google/blog/finding-faster-quantum-algorithms-with-agents-and-formal-verification/",
+      "news_id": "2124926810035245538"
+    },
+    {
+      "rank": 8,
+      "title": "Atlassian Head of AI Sherif Mansour：全员变成 AI Builder 几周后卡住，瓶颈是方向不是吞吐",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-23T20:34:49.000Z",
+      "author": "Sherif Mansour / Lenny Rachitsky",
+      "handle": "sherifmansour",
+      "post_url": "https://x.com/i/status/2124915778684064079",
+      "news_url": "https://x.com/i/trending/2124962158094295418",
+      "blog_url": "https://www.saastr.com/atlassians-head-of-ai-we-bolted-ai-onto-20-apps-almost-didnt-ship-chat-and-flipped-our-hiring-toward-juniors/",
+      "news_id": "2124962158094295418"
+    },
+    {
+      "rank": 9,
+      "title": "Grok Bot 替用户追回亚马逊退款（昨日 #7 续热，独立帖 6→10）",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-23T08:22:43.000Z",
+      "author": "Christopher Stanley / Trevin Chow / Lee Robinson",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2124314532126323042",
+      "news_url": "https://x.com/i/trending/2124338467253714948",
+      "blog_url": "https://cellcog.ai/blog/grok-bot-amazon-refunds/",
+      "news_id": "2124338467253714948"
+    },
+    {
+      "rank": 10,
+      "title": "Gurman Power On：Apple Risks Losing the AI Agent War（昨日 #2 续热，独立帖仍为 10）",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-22T20:29:08.000Z",
+      "author": "Mark Gurman / Bloomberg",
+      "handle": "markgurman",
+      "post_url": "https://x.com/i/status/2124235020701466913",
+      "news_url": "https://x.com/i/trending/2124247629991428440",
+      "blog_url": "https://www.macrumors.com/2026/11/22/siri-layoffs-spared-newer-ai-systems/",
+      "news_id": "2124247629991428440"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Visa CLI / TAP leftover（昨日 #1，独立帖 5→5，簇仍更新到 00:41）",
+      "cluster_unique_posts": 5,
+      "news_id": "2124588723761193273",
+      "blog_url": "https://app.visacli.sh/docs/what-is-tap"
+    },
+    {
+      "title": "Docker《Meet the New Docker》leftover（昨日 #4，独立帖 10→10，无新原文）",
+      "cluster_unique_posts": 10,
+      "news_id": "2124534700396159272",
+      "blog_url": "https://www.docker.com/blog/meet-the-new-docker-built-to-run-on-trust/"
+    },
+    {
+      "title": "Signal 截屏拦截 leftover（昨日 #5，独立帖 7→5）",
+      "cluster_unique_posts": 5,
+      "news_id": "2124230777613451574",
+      "blog_url": "https://signal.org/blog/protecting-your-privacy/"
+    },
+    {
+      "title": "T3 Code leftover（昨日 #6，独立帖 6→6）",
+      "cluster_unique_posts": 6,
+      "news_id": "2124526289327435816",
+      "blog_url": "https://t3.codes/"
+    },
+    {
+      "title": "Stripe Link Agent Wallet 80× leftover（昨日 #10，独立帖 7，原文未改，并入 #2）",
+      "cluster_unique_posts": 7,
+      "news_id": "2124530298197360991",
+      "blog_url": "https://x.com/ernietedeschi/status/2123852064027471901"
+    },
+    {
+      "title": "Vercel Board leftover（独立帖 10，11-18 产品，无新原文）",
+      "cluster_unique_posts": 10,
+      "news_id": "2124974794429075887",
+      "blog_url": null
+    }
+  ]
+}
