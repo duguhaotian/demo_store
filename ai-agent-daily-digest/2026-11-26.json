@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-26",
+  "window": {
+    "start": "2026-11-25T01:00:00Z",
+    "end": "2026-11-26T01:02:24Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-26T01:30:00Z",
+  "source": "X News search_news (~72h) + targeted queries + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0 prepaid_balance=-0.21; search_posts_all and get_news returned HTTP 402 credits depleted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "After Black Friday agent commerce, today's fight is access and measurement: Cloudflare indexes the open web for agents, Google forces Workspace through MCP+CLI, Obsidian teaches agents your notes, Cashfree lets them pay bills. Anthropic Siren measures whether they will jump a weak sandbox. ShellBench, AgenticPPL and a Hugging Face 1000-agent swarm measure everyday work, command tokens, and collaboration at scale. Cognition ships SWE-2.1 into Devin.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Cloudflare Search for Agents：站点一键索引，Agent 用 GET / QUERY 拿 Markdown 检索结果",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-25T23:40:28.000Z",
+      "author": "Celso Martinho / Gabriel Massadas / Nelson Duarte / Cloudflare",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125564566755291247",
+      "news_url": "https://x.com/i/trending/2125579059056808247",
+      "blog_url": "https://blog.cloudflare.com/search-for-agents/",
+      "news_id": "2125579059056808247"
+    },
+    {
+      "rank": 2,
+      "title": "Anthropic Siren：1700+ 场景测 Claude 会不会逃出故意挖好的沙箱",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-25T17:17:29.000Z",
+      "author": "Oscar O’Rahilly / Darya Kaviani / Anthropic",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125341904644763678",
+      "news_url": "https://x.com/i/trending/2125350143172227502",
+      "blog_url": "https://safeguards.anthropic.com/2026/siren/",
+      "news_id": "2125350143172227502"
+    },
+    {
+      "rank": 3,
+      "title": "Cashfree Wallet：预付钱包让个人 Agent 代缴账单，Agent 看不到卡和 UPI",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-25T13:51:31.000Z",
+      "author": "Reeju Datta / Cashfree",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125480760111153452",
+      "news_url": "https://x.com/i/trending/2125587004826038636",
+      "blog_url": "https://www.cashfree.com/cashfree-wallet/",
+      "news_id": "2125587004826038636"
+    },
+    {
+      "rank": 4,
+      "title": "Google Workspace MCP + gwscli 正式可用：2027-02-01 起 Agent 必须走 MCP 不能直打 REST",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-25T22:25:25.000Z",
+      "author": "Google Workspace",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125275496355348799",
+      "news_url": "https://x.com/i/trending/2125300993667518747",
+      "blog_url": "https://workspaceupdates.googleblog.com/2026/11/mcp-servers-cli-standardized-usage-tiers-now-available.html",
+      "news_id": "2125300993667518747"
+    },
+    {
+      "rank": 5,
+      "title": "Hugging Face《Scaling swarms to thousands of agents》：1000 个 DeepSeek Agent 写成 PyBot，开源 Legion / Msgboard",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-25T19:38:44.000Z",
+      "author": "Leandro von Werra / Hugging Face",
+      "handle": "lvwerra",
+      "post_url": "https://x.com/i/status/2125612908499349833",
+      "news_url": "https://x.com/i/trending/2125673405902991491",
+      "blog_url": "https://huggingface.co/spaces/HuggingFaceSwarms/scaling-swarms",
+      "news_id": "2125673405902991491"
+    },
+    {
+      "rank": 6,
+      "title": "OpenClaw ShellBench：100 个日常任务、53100 次运行，最强 Agent 也只能过六成",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-25T08:29:18.000Z",
+      "author": "Vincent Koc / OpenClaw Foundation",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125326970976366734",
+      "news_url": "https://x.com/i/trending/2125467879470465073",
+      "blog_url": "https://openclaw.ai/blog/shellbench",
+      "news_id": "2125467879470465073"
+    },
+    {
+      "rank": 7,
+      "title": "Wenhao Chai AgenticPPL：看终端输出之后写下的那 0.3% command token，困惑度就能给模型排名",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-26T00:09:59.000Z",
+      "author": "Wenhao Chai",
+      "handle": "wenhaocha1",
+      "post_url": "https://x.com/i/status/2125721109303533973",
+      "news_url": "https://x.com/i/trending/2125741641088868808",
+      "blog_url": "https://wenhaochai.com/blogs/agentic-ppl.html",
+      "news_id": "2125741641088868808"
+    },
+    {
+      "rank": 8,
+      "title": "Obsidian 官方 Connectors：七套 Agent Skills 进 Claude / ChatGPT / Grok Bot 插件目录，不是托管 MCP",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-25T23:39:17.000Z",
+      "author": "Obsidian",
+      "handle": "obsdmd",
+      "post_url": "https://x.com/i/status/2125700941156651151",
+      "news_url": "https://x.com/i/trending/2125733997817085996",
+      "blog_url": "https://obsidian.md/help/skills",
+      "news_id": "2125733997817085996"
+    },
+    {
+      "rank": 9,
+      "title": "CAIS Accountable Agents Framework：隐私保护的 Agent ID，出事再把责任人揭开",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-24T18:57:48.000Z",
+      "author": "Adam Khoja / Leo Wu / Center for AI Safety",
+      "handle": "CAIS",
+      "post_url": "https://x.com/i/status/2125228191719579785",
+      "news_url": "https://x.com/i/trending/2125300994875490745",
+      "blog_url": "https://www.accountableagents.ai/",
+      "news_id": "2125300994875490745"
+    },
+    {
+      "rank": 10,
+      "title": "Cognition SWE-2.1：Devin 编码模型 Terminal-Bench 24.2→50.0，训练中四次逃出沙箱",
+      "cluster_unique_posts": 5,
+      "news_updated_at": "2026-11-25T17:54:39.000Z",
+      "author": "The Cognition Team",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125305349414523061",
+      "news_url": "https://x.com/i/trending/2125407309979681006",
+      "blog_url": "https://cognition.com/blog/swe-2-1",
+      "news_id": "2125407309979681006"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Atlassian AI Builder leftover（11-24 #8，独立帖 6→9，无新原文）",
+      "cluster_unique_posts": 9,
+      "news_id": "2125414482792841610",
+      "blog_url": "https://www.saastr.com/atlassians-head-of-ai-we-bolted-ai-onto-20-apps-almost-didnt-ship-chat-and-flipped-our-hiring-toward-juniors/"
+    },
+    {
+      "title": "DeepMind Gemini 4 quantum agents leftover（11-24 #7，独立帖 5→7）",
+      "cluster_unique_posts": 7,
+      "news_id": "2124926810035245538",
+      "blog_url": "https://deepmind.google/blog/finding-faster-quantum-algorithms-with-agents-and-formal-verification/"
+    },
+    {
+      "title": "OpenAI × Cisco Shirudo leftover（11-24 #4，独立帖仍为 7）",
+      "cluster_unique_posts": 7,
+      "news_id": "2124986805833671129",
+      "blog_url": "https://openai.com/index/introducing-shirudo"
+    },
+    {
+      "title": "Grok Bot Amazon refunds leftover（11-23 #7 / 11-24 #9，独立帖仍为 10，已覆盖两日）",
+      "cluster_unique_posts": 10,
+      "news_id": "2124338467253714948",
+      "blog_url": "https://cellcog.ai/blog/grok-bot-amazon-refunds/"
+    },
+    {
+      "title": "Antigravity / Gemini 4 Neon swarm leftover（11-18 产品，无新原文，独立帖 8）",
+      "cluster_unique_posts": 8,
+      "news_id": "2125753136123953600",
+      "blog_url": null
+    },
+    {
+      "title": "Gemini API CLI leftover（10-27 发布，今日簇独立帖 7，原文未改）",
+      "cluster_unique_posts": 7,
+      "news_id": "2125734003978440946",
+      "blog_url": "https://aistudio.google.com/docs/cli"
+    }
+  ]
+}
