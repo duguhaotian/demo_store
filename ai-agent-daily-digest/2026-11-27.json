@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-27",
+  "window": {
+    "start": "2026-11-26T01:00:00Z",
+    "end": "2026-11-27T01:01:50Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-27T01:40:00Z",
+  "source": "X News search_news (~36h) + targeted queries + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0 prepaid_balance=-0.21; search_posts_all and get_posts_by_ids omitted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Yesterday measured how agents get in and how they stay in the box. Today is the runtime under the loop: Effect UI is a frontend an agent can migrate in one shot, Thorsten Ball says three-month-old agent habits are theater, Matt Van Horn timed 16 Mac computer-use tools, Psychoscript pauses the script an agent wrote, Ramp/Baseten pass KV cache between seven models, Switzerland confirms agentic attacks on critical infrastructure, Ajzenstadt writes the six layers around the model, Tencent DFly2 speeds sparse-model agent decode, Anthropic agents rewrote the live Messages API in Rust, and Robbyant open-sources a navigation agent that remembers a room.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "Effect UI 公测：给 Agent 写的 Elm 架构前端，Opus 5.5 一次迁完 React 应用",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-27T00:25:02.000Z",
+      "author": "Devin Jameson / Effect",
+      "handle": "devinjameson",
+      "post_url": "https://x.com/i/status/2125921405988708749",
+      "news_url": "https://x.com/i/trending/2126021337533809057",
+      "blog_url": "https://ui.effect.website/",
+      "news_id": "2126021337533809057"
+    },
+    {
+      "rank": 2,
+      "title": "Thorsten Ball：2026 年 11 月还按三个月前的方式用 Agent，已经是演戏",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-26T21:45:07.000Z",
+      "author": "Thorsten Ball",
+      "handle": "thorstenball",
+      "post_url": "https://x.com/i/status/2126006279176921404",
+      "news_url": "https://x.com/i/trending/2126067684282671493",
+      "blog_url": "https://news.sulat.com/2026/11/27/thorsten-ball-agent-habits/",
+      "news_id": "2126067684282671493"
+    },
+    {
+      "rank": 3,
+      "title": "Matt Van Horn 测了 16 款 Mac Agent 工具：浏览器用 Ardia，原生 App 用 cua-driver",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-26T20:25:41.000Z",
+      "author": "Matt Van Horn",
+      "handle": "mvanhorn",
+      "post_url": "https://x.com/i/status/2125973765104566675",
+      "news_url": "https://x.com/i/trending/2126048254639132674",
+      "blog_url": "https://www.techtwitter.com/articles/i-tested-16-agent-browser-and-computer-use-tools-here-is-what-i-switched-to-2125973765104566675",
+      "news_id": "2126048254639132674"
+    },
+    {
+      "rank": 4,
+      "title": "OpenCode 把 Code Mode 运行时拆成 Psychoscript：可暂停、可快照的 JavaScript 解释器",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-26T00:21:29.000Z",
+      "author": "OpenCode / Anomaly",
+      "handle": "opencode",
+      "post_url": "https://x.com/i/status/2125702030832349374",
+      "news_url": "https://x.com/i/trending/2125744980237111574",
+      "blog_url": "https://github.com/anomalyco/psychoscript",
+      "news_id": "2125744980237111574"
+    },
+    {
+      "rank": 5,
+      "title": "Ramp Labs × Baseten Speculative Encoding：一个 2.35B 翻译器在七个模型间传 KV，不用重新 prefill",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-25T23:39:21.000Z",
+      "author": "Ben Geist / Ramp Labs / Base Labs",
+      "handle": "baseten",
+      "post_url": "https://x.com/i/status/2125572875386294287",
+      "news_url": "https://x.com/i/trending/2125641089897934870",
+      "blog_url": "https://labs.baseten.co/articles/speculative-encoding-many-to-many-cache-translation",
+      "news_id": "2125641089897934870"
+    },
+    {
+      "rank": 6,
+      "title": "瑞士 NCSC：首次确认 AI Agent 攻破关键基础设施，五起里四起得手",
+      "cluster_unique_posts": 9,
+      "news_updated_at": "2026-11-26T16:56:41.000Z",
+      "author": "Florian Schütz / Swiss NCSC (BACS)",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125905649577943265",
+      "news_url": "https://x.com/i/trending/2125995651842355451",
+      "blog_url": "https://www.bacs.admin.ch/en/26-ki-agenten-1-en",
+      "news_id": "2125995651842355451"
+    },
+    {
+      "rank": 7,
+      "title": "Mark Ajzenstadt：能跑的 Agentic 系统有六层，失败几乎都在模型外面",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-26T18:55:55.000Z",
+      "author": "Mark Ajzenstadt",
+      "handle": "mardehaym",
+      "post_url": "https://x.com/i/status/2125913331915784509",
+      "news_url": "https://x.com/i/trending/2126024286854914254",
+      "blog_url": "https://x.com/i/status/2125913331915784509",
+      "news_id": "2126024286854914254"
+    },
+    {
+      "rank": 8,
+      "title": "腾讯开源 DFly2：共享目标模型稀疏 KV，Agent 负载最多快 4.2 倍",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-26T23:01:34.000Z",
+      "author": "Tencent Hunyuan AI Infra",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2125968859450802415",
+      "news_url": "https://x.com/i/trending/2126087586351341611",
+      "blog_url": "https://github.com/Tencent/AngelSpec",
+      "news_id": "2126087586351341611"
+    },
+    {
+      "rank": 9,
+      "title": "Anthropic：Claude Agent 把 Messages API 从 Python 迁到 Rust，单请求 CPU 降约 70%",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-26T22:33:58.000Z",
+      "author": "Anthropic",
+      "handle": "AnthropicAI",
+      "post_url": "https://x.com/i/status/2125627317263466739",
+      "news_url": "https://x.com/i/trending/2125634927710642376",
+      "blog_url": "https://www.anthropic.com/research/migrating-api-to-rust",
+      "news_id": "2125634927710642376"
+    },
+    {
+      "rank": 10,
+      "title": "Robbyant LingBot-Navi：带空间记忆的开源导航 Agent，511 个真实场景",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-26T23:29:27.000Z",
+      "author": "Robbyant / Ant Group",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2126020732610302086",
+      "news_url": "https://x.com/i/trending/2126094575840411969",
+      "blog_url": "https://technology.robbyant.com/lingbot-navi",
+      "news_id": "2126094575840411969"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "AgenticPPL leftover（昨日 #7，独立帖 6→10，约 1.67×，原文未改）",
+      "cluster_unique_posts": 10,
+      "news_id": "2125741641088868808",
+      "blog_url": "https://wenhaochai.com/blogs/agentic-ppl.html"
+    },
+    {
+      "title": "Cloudflare Search for Agents leftover（昨日 #1，独立帖 10→8，新簇 2125964973809746012 仍是 11-25 博客）",
+      "cluster_unique_posts": 8,
+      "news_id": "2125964973809746012",
+      "blog_url": "https://blog.cloudflare.com/search-for-agents/"
+    },
+    {
+      "title": "Google Workspace MCP leftover（昨日 #4，独立帖仍为 7，新簇 2125972024841711668 独立帖 8，原文未改）",
+      "cluster_unique_posts": 8,
+      "news_id": "2125972024841711668",
+      "blog_url": "https://workspaceupdates.googleblog.com/2026/11/mcp-servers-cli-standardized-usage-tiers-now-available.html"
+    },
+    {
+      "title": "Anthropic MCP 两周年 Skills over MCP leftover（11-24 原文，独立帖 10，超过两日）",
+      "cluster_unique_posts": 10,
+      "news_id": "2125297915564372450",
+      "blog_url": "https://claude.com/resources/articles/skills-over-mcp-tasks-and-more"
+    },
+    {
+      "title": "OpenAI Private Inference alpha（独立帖 7，产品页有 Agent actions，主线是推理隐私不是 Agent 产品）",
+      "cluster_unique_posts": 7,
+      "news_id": "2125644506078855670",
+      "blog_url": "https://openai.com/business/private-intelligence/"
+    },
+    {
+      "title": "Anthropic 三代理 harness leftover（原文 2026-03-24，独立帖 7）",
+      "cluster_unique_posts": 7,
+      "news_id": "2126003739337117696",
+      "blog_url": "https://www.anthropic.com/research/harness-design-long-running-apps"
+    }
+  ]
+}
