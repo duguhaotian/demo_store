@@ -1,0 +1,184 @@
+{
+  "date": "2026-11-28",
+  "window": {
+    "start": "2026-11-27T01:00:00Z",
+    "end": "2026-11-28T01:01:47Z"
+  },
+  "ranking_formula": "cluster_unique_posts + news.updated_at recency + has_original_blog (post-level public_metrics unavailable)",
+  "generated_at": "2026-11-28T01:45:00Z",
+  "source": "X News search_news (~36h) + targeted queries + public blog cross-check",
+  "metrics_note": "get_usage_credits total_balance=0 prepaid_balance=-0.21; search_posts_all and get_posts_by_ids omitted; likes/bookmarks/reposts/quotes/impressions omitted on purpose.",
+  "theme": "Yesterday was the runtime under the loop. Today is the harness around the sandbox: SandboxRouter/BoxRouter give agents one API across 36 providers, Grok Bot skips empty routine inference for 11% more usage and 50% more routines, Greg Isenberg wants an accelerator for solo founders who run companies with agents, SenseNova RoboRSI uses Code as Policy on real arms, Left to Solve points agents at 60k Lean problems, and Codex slims streaming by ~80%. Four leftover unique-10/8 seats remain from yesterday's board.",
+  "top10": [
+    {
+      "rank": 1,
+      "title": "SandboxRouter / BoxRouter：给 Agent 沙箱一个 OpenRouter 式的统一路由",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-27T23:04:38.000Z",
+      "author": "Arthur Katcher / Sidhartha Mani / SandboxRouter",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2126284073899573738",
+      "news_url": "https://x.com/i/trending/2126404224124690834",
+      "blog_url": "https://www.sandboxrouter.ai/",
+      "news_id": "2126404224124690834"
+    },
+    {
+      "rank": 2,
+      "title": "Grok Bot：跳过空例程推理后套餐多用 11%，例程容量 +50%",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-27T10:52:57.000Z",
+      "author": "Sam Sokolin",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2126027973568466949",
+      "news_url": "https://x.com/i/trending/2126082898680029490",
+      "blog_url": "https://x.com/i/status/2126027973568466949",
+      "news_id": "2126082898680029490"
+    },
+    {
+      "rank": 3,
+      "title": "Greg Isenberg：给靠 Agent 自筹资金运营的个人创始人办加速器",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-27T23:45:16.000Z",
+      "author": "Greg Isenberg",
+      "handle": "gregisenberg",
+      "post_url": "https://x.com/i/status/2126425412200964224",
+      "news_url": "https://x.com/i/trending/2126460764240420909",
+      "blog_url": "https://x.com/i/status/2126425412200964224",
+      "news_id": "2126460764240420909"
+    },
+    {
+      "rank": 4,
+      "title": "商汤 SenseNova-RoboRSI：Code as Policy + VLA，仿真训完直接上真机",
+      "cluster_unique_posts": 7,
+      "news_updated_at": "2026-11-27T12:30:44.000Z",
+      "author": "SenseNova / Bruce",
+      "handle": "sensenova",
+      "post_url": "https://x.com/i/status/2125586674830959069",
+      "news_url": "https://x.com/i/trending/2125874341443166254",
+      "blog_url": "https://huggingface.co/blog/sensenova/roborsi",
+      "news_id": "2125874341443166254"
+    },
+    {
+      "rank": 5,
+      "title": "Left to Solve：把 6 万道未解数学题交给你的 Agent，Lean 4 判对错",
+      "cluster_unique_posts": 6,
+      "news_updated_at": "2026-11-28T01:01:05.000Z",
+      "author": "Guillaume Baud",
+      "handle": null,
+      "post_url": "https://x.com/i/status/2126415350610727009",
+      "news_url": "https://x.com/i/trending/2126479850554994741",
+      "blog_url": "https://www.lefttosolve.com/",
+      "news_id": "2126479850554994741"
+    },
+    {
+      "rank": 6,
+      "title": "Charlie Marsh：Codex 把长编码线程的流式响应从 7.48 MB 压到 930 KB",
+      "cluster_unique_posts": 5,
+      "news_updated_at": "2026-11-27T21:07:30.000Z",
+      "author": "Charlie Marsh / OpenAI Codex",
+      "handle": "charliermarsh",
+      "post_url": "https://x.com/i/status/2126381983945400542",
+      "news_url": "https://x.com/i/trending/2126420932923408780",
+      "blog_url": "https://x.com/i/status/2126381983945400542",
+      "news_id": "2126420932923408780"
+    },
+    {
+      "rank": 7,
+      "title": "Effect UI 公测 leftover：给 Agent 写的 Elm 架构前端",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-27T00:25:02.000Z",
+      "author": "Devin Jameson / Effect",
+      "handle": "devinjameson",
+      "post_url": "https://x.com/i/status/2125921405988708749",
+      "news_url": "https://x.com/i/trending/2126021337533809057",
+      "blog_url": "https://ui.effect.website/",
+      "news_id": "2126021337533809057"
+    },
+    {
+      "rank": 8,
+      "title": "Thorsten Ball leftover：三个月前的 Agent 习惯已经是演戏",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-26T21:45:07.000Z",
+      "author": "Thorsten Ball",
+      "handle": "thorstenball",
+      "post_url": "https://x.com/i/status/2126006279176921404",
+      "news_url": "https://x.com/i/trending/2126067684282671493",
+      "blog_url": "https://news.sulat.com/2026/11/27/thorsten-ball-agent-habits/",
+      "news_id": "2126067684282671493"
+    },
+    {
+      "rank": 9,
+      "title": "Matt Van Horn leftover：16 款 Mac Agent 工具，Ardia + cua-driver",
+      "cluster_unique_posts": 10,
+      "news_updated_at": "2026-11-26T20:25:41.000Z",
+      "author": "Matt Van Horn",
+      "handle": "mvanhorn",
+      "post_url": "https://x.com/i/status/2125973765104566675",
+      "news_url": "https://x.com/i/trending/2126048254639132674",
+      "blog_url": "https://www.techtwitter.com/articles/i-tested-16-agent-browser-and-computer-use-tools-here-is-what-i-switched-to-2125973765104566675",
+      "news_id": "2126048254639132674"
+    },
+    {
+      "rank": 10,
+      "title": "Mark Ajzenstadt leftover：能跑的 Agentic 系统有六层",
+      "cluster_unique_posts": 8,
+      "news_updated_at": "2026-11-26T18:55:55.000Z",
+      "author": "Mark Ajzenstadt",
+      "handle": "mardehaym",
+      "post_url": "https://x.com/i/status/2125913331915784509",
+      "news_url": "https://x.com/i/trending/2126024286854914254",
+      "blog_url": "https://x.com/i/status/2125913331915784509",
+      "news_id": "2126024286854914254"
+    }
+  ],
+  "honorable_mentions": [
+    {
+      "title": "Y Combinator AI-native services（独立帖 8，library/Rk 页面抓取为空、日期未核到窗口内新原文）",
+      "cluster_unique_posts": 8,
+      "news_id": "2126398553056571468",
+      "blog_url": "https://www.ycombinator.com/library/Rk-how-to-build-an-ai-native-services-company"
+    },
+    {
+      "title": "Google Workspace MCP leftover（昨日 leftover，独立帖 7→10，原文仍是 11-24 公告，超过两日）",
+      "cluster_unique_posts": 10,
+      "news_id": "2125972024841711668",
+      "blog_url": "https://workspaceupdates.googleblog.com/2026/11/mcp-servers-cli-standardized-usage-tiers-now-available.html"
+    },
+    {
+      "title": "Anthropic MCP 两周年 Skills leftover（11-24 原文，独立帖 10，超过两日）",
+      "cluster_unique_posts": 10,
+      "news_id": "2126265181575753982",
+      "blog_url": "https://claude.com/resources/articles/skills-over-mcp-tasks-and-more"
+    },
+    {
+      "title": "Anthropic Messages API Rust leftover（昨日 #9，新簇 2126345740435980560 独立帖 7，仍是 11-25 博客）",
+      "cluster_unique_posts": 7,
+      "news_id": "2126345740435980560",
+      "blog_url": "https://www.anthropic.com/research/migrating-api-to-rust"
+    },
+    {
+      "title": "Cloudflare Search for Agents leftover（独立帖仍为 8，11-25 博客未改）",
+      "cluster_unique_posts": 8,
+      "news_id": "2125964973809746012",
+      "blog_url": "https://blog.cloudflare.com/search-for-agents/"
+    },
+    {
+      "title": "瑞士 NCSC leftover（昨日 #6，独立帖 9→7）",
+      "cluster_unique_posts": 7,
+      "news_id": "2125995651842355451",
+      "blog_url": "https://www.bacs.admin.ch/en/26-ki-agenten-1-en"
+    },
+    {
+      "title": "Instinct Black Friday leftover（独立帖 7，无新原文博客）",
+      "cluster_unique_posts": 7,
+      "news_id": "2126445446679900346",
+      "blog_url": null
+    },
+    {
+      "title": "Sulat Lesse 一个月复查（独立帖 10，原文仍是 10-25/26 Lesse 四问题）",
+      "cluster_unique_posts": 10,
+      "news_id": "2126163961124958221",
+      "blog_url": "https://news.sulat.com/2026/11/27/lesse-multiagent-problems/"
+    }
+  ]
+}
